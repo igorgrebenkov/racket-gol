@@ -2,13 +2,13 @@
 (require racket/gui)
 (require racket/draw)
 
-(define cell-length 20)           
+(define cell-length 5)           
 (define frame-height 1000)      
 (define frame-width 1000)
 (define color-black (make-object color% 0 0 0))
 (define color-dead-str "black")
 (define color-alive-str "green")
-(define sleep-delay 1)
+(define sleep-delay 0)
 (define max-x
   (exact-round (/ frame-width cell-length)))
 (define max-y
@@ -63,6 +63,16 @@
            (begin
              (hash-set! ht key 'dead)
              (populate-table ht (cdr key-list)))))))
+
+(define (update-table ht key-list)
+  (cond ((null? key-list) #t)
+        (else
+         (let ((key (car key-list)))
+           (cond ((not (hash-has-key? ht key))
+                  (hash-set! ht key 'dead)
+                  (update-table ht (cdr key-list)))
+                 (else
+                  (update-table ht (cdr key-list))))))))
   
 ; Draws the cells in the coord-list to the board-canvas
 (define (draw-cells ht key-list)
@@ -94,6 +104,7 @@
           ((equal? action 'kill)
            (cell-update-status cell-ht (list cell-x cell-y) 'dead)))))
 
+
 ; Custom canvas used for the gameboard
 (define game-canvas%
   (class canvas%
@@ -119,7 +130,7 @@
               (send event get-y)
               'kill))
             (else #f)))
-    (define/override (on-paint)
+    (define/override (on-paint)               ; handles window resizing
       (begin
         (send board-canvas set-canvas-background color-black)
         (set! frame-height (send frame get-height))
@@ -128,7 +139,7 @@
         (set! max-y (exact-round (/ frame-width cell-length)))
         (set! cell-keys '())
         (gen-xy max-x max-y)
-        (populate-table cell-ht cell-keys)
+        (update-table cell-ht cell-keys)
         (draw-cells cell-ht cell-keys)))
       (super-new)))
  
