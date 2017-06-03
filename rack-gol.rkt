@@ -2,9 +2,9 @@
 (require racket/gui)
 (require racket/draw)
 
-(define cell-length 5)           
+(define cell-length 20)           
 (define frame-height 1000)      
-(define frame-width 1000)
+(define frame-width 700)
 (define color-black (make-object color% 0 0 0))
 (define color-dead-str "black")
 (define color-alive-str "green")
@@ -14,27 +14,40 @@
 (define max-y
   (exact-round (/ frame-height cell-length)))
 (define cell-keys '())
+(define cell-buf '())
+
+; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ; Generates a list of all possible cell keys
 (define (gen-xy max-x max-y)
   (begin
-    (do ((i max-y (sub1 i))) ((< i 0))
-      (do ((j max-x (sub1 j))) ((< j 0))
+    (do ((i max-x (sub1 i))) ((< i 0))
+      (do ((j max-y (sub1 j))) ((< j 0))
            (set! cell-keys
-                 (cons (list i j) cell-keys))))
-    ))
-
-; Draws a single square on the canvas at (x,y)
-(define (draw-square x y color)
-  (begin
-    (send dc set-brush (make-object brush% color 'solid))
-    (send dc draw-rectangle
-          (* x cell-length)
-          (* y cell-length)
-          cell-length cell-length)))
+                 (cons (list i j) cell-keys))))))
 
 ; Hash table for the cells
 (define cell-ht (make-hash))
+
+; Populates the hash table with every cell initially dead
+(define (populate-table ht key-list)
+  (cond ((null? key-list) #t)
+        (else
+         (let ((key (car key-list)))
+           (begin
+             (hash-set! ht key 'dead)
+             (populate-table ht (cdr key-list)))))))
+
+; Updates the hash table with keys that don't already exist
+(define (update-table ht key-list)
+  (cond ((null? key-list) #t)
+        (else
+         (let ((key (car key-list)))
+           (cond ((not (hash-has-key? ht key))
+                  (hash-set! ht key 'dead)
+                  (update-table ht (cdr key-list)))
+                 (else
+                  (update-table ht (cdr key-list))))))))
 
 ; Sets a cell's status and draws it on the canvas
 (define (cell-update-status ht key status)
@@ -54,27 +67,8 @@
           ((equal? status 'dead)
            (hash-set! ht key 'alive)
            (draw-square (car key) (cadr key) color-alive-str)))))
-
-; Populates the hash table with every cell initially dead
-(define (populate-table ht key-list)
-  (cond ((null? key-list) #t)
-        (else
-         (let ((key (car key-list)))
-           (begin
-             (hash-set! ht key 'dead)
-             (populate-table ht (cdr key-list)))))))
-
-(define (update-table ht key-list)
-  (cond ((null? key-list) #t)
-        (else
-         (let ((key (car key-list)))
-           (cond ((not (hash-has-key? ht key))
-                  (hash-set! ht key 'dead)
-                  (update-table ht (cdr key-list)))
-                 (else
-                  (update-table ht (cdr key-list))))))))
   
-; Draws the cells in the coord-list to the board-canvas
+; Draws the cells in the key-list to the board-canvas
 (define (draw-cells ht key-list)
   (cond ((null? key-list) #t)
         (else
@@ -91,8 +85,55 @@
                 (else
                  (draw-cells ht (cdr key-list))))))))
 
+; Generates a list of the Moore neighborhood of a cell
+(define (cell-neighbors-moore key)
+  (let* ((x (car key))
+         (y (cadr key))
+         (top-left (list (modulo (- x 1) max-x) (modulo (- y 1) max-y)))
+         (top (list (modulo x max-x) (modulo (- y 1) max-y)))
+         (top-right (list (modulo (+ x 1) max-x) (modulo (- y 1) max-y)))
+         (left (list (modulo (- x 1) max-x) (modulo y max-y)))
+         (right (list (modulo (+ x 1) max-x) (modulo y max-y)))
+         (bottom-left (list (modulo (- x 1) max-x) (modulo (+ y 1) max-y)))
+         (bottom (list (modulo x max-x) (modulo (+ y 1) max-y)))
+         (bottom-right (list (modulo (+ x 1) max-x) (modulo (+ y 1) max-y))))
+    (list top-left
+          top
+          top-right
+          left
+          right
+          bottom-left
+          bottom
+          bottom-right)))
 
-; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+; Returns a list with the number of alive/dead cells -> '(alive dead)
+(define (cell-neighbors-count ht key)
+  (let ((num-alive 0)
+        (num-dead 0)
+        (neighbors (cell-neighbors-moore key)))
+    (letrec ((count-loop (lambda (neighbor-list)
+                           (cond ((null? neighbor-list) #t)
+                                 (else
+                                  (let* ((key (car neighbor-list))
+                                         (status (hash-ref ht key)))
+                                    (cond ((equal? status 'alive)
+                                           (set! num-alive (add1 num-alive))
+                                           (count-loop (cdr neighbor-list)))
+                                          ((equal? status 'dead)
+                                           (set! num-dead (add1 num-dead))
+                                           (count-loop (cdr neighbor-list))))))))))
+      (count-loop neighbors))
+    (list num-alive num-dead)))
+
+
+;(define (cell-next-gen key)
+  ;(let* ((neighbors (cell-neighbors-moore key))
+         ;(num-neighbors (length neighbors))
+  
+
+
+; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% VIEW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 ; Action associated with mouse buttons for making cells dead/alive
 (define (mouse-click-action x y action)
   (let ((cell-x (exact-floor (/ x cell-length)))
@@ -103,7 +144,6 @@
            (cell-update-status cell-ht (list cell-x cell-y) 'alive))
           ((equal? action 'kill)
            (cell-update-status cell-ht (list cell-x cell-y) 'dead)))))
-
 
 ; Custom canvas used for the gameboard
 (define game-canvas%
@@ -135,14 +175,14 @@
         (send board-canvas set-canvas-background color-black)
         (set! frame-height (send frame get-height))
         (set! frame-width (send frame get-width))
-        (set! max-x (exact-round (/ frame-height cell-length)))
-        (set! max-y (exact-round (/ frame-width cell-length)))
+        (set! max-x (exact-round (/ frame-width cell-length)))
+        (set! max-y (exact-round (/ frame-height cell-length)))
         (set! cell-keys '())
         (gen-xy max-x max-y)
         (update-table cell-ht cell-keys)
         (draw-cells cell-ht cell-keys)))
       (super-new)))
- 
+
 (define frame (new frame%
                    [label "Game of Life"]
                    [width frame-height]
@@ -156,6 +196,27 @@
                        (send canvas set-canvas-background color-black))]))
 
 (define dc (send board-canvas get-dc))
+
+; Draws a single square on the canvas at (x,y)
+(define (draw-square x y color)
+  (begin
+    (send dc set-brush (make-object brush% color 'solid))
+    (send dc draw-rectangle
+          (* x cell-length)
+          (* y cell-length)
+          cell-length cell-length)))
+
+(define update-it (lambda (length)
+  (begin
+        (set! cell-length length)
+        (set! frame-height (send frame get-height))
+        (set! frame-width (send frame get-width))
+        (set! max-x (exact-round (/ frame-height cell-length)))
+        (set! max-y (exact-round (/ frame-width cell-length)))
+        (set! cell-keys '())
+        (gen-xy max-x max-y)
+        (update-table cell-ht cell-keys)
+        (draw-cells cell-ht cell-keys))))
 
 (send frame show #t)
 (sleep/yield sleep-delay)
