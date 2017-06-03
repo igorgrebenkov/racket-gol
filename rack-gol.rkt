@@ -8,7 +8,7 @@
 (define color-black (make-object color% 0 0 0))
 
 (define frame (new frame%
-                   [label "Sierpinski Triangle Generator"]
+                   [label "Game of Life"]
                    [width frame-height]
                    [height frame-width]))
 
@@ -39,35 +39,56 @@
         (* y length)
         length length))
 
-; Represents a single cell
-(define (cell x y status) (list x y status))
+; List of all the cell keys in the hash table
+(define cell-keys '())
 
-; List of all the cells on the board
-(define cells '())
+; Hash table for the cells
+(define cell-ht (make-hash))
 
-; Generates a list of all cells
+; Inserts a cell into the hash table with key '(x y)
+(define (insert-cell ht x y status)
+  (hash-set! ht (list x y) (list status)))
+
+
+; Generates a list of all possible cell keys
 (define (gen-xy max)
   (begin
-    (do ((i (add1 max) (sub1 i))) ((< i 0))
-      (do ((j (add1 max) (sub1 j))) ((< j 0))
-           (set! cells (cons (cell i j 'alive) cells))))
-    cells))
+    (do ((i max (sub1 i))) ((< i 0))
+      (do ((j max (sub1 j))) ((< j 0))
+           (set! cell-keys
+                 (cons (list i j) cell-keys))))
+    cell-keys))
+
+
+(define (populate-table ht key-list)
+  (cond ((null? key-list) #t)
+        (else
+         (let ((key (car key-list)))
+           (begin
+             (hash-set! ht key 'dead)
+             (populate-table ht (cdr key-list)))))))
+           
+
+
 
 ; Draws the cells in the coord-list to the canvas
-(define (draw-cells coord-list)
-  (cond ((null? coord-list) #t)
+(define (draw-cells ht key-list)
+  (cond ((null? key-list) #t)
         (else
-         (let ((x (caar coord-list))
-               (y (cadar coord-list))
-               (status (caddar coord-list)))
-          (cond ((equal? status 'alive)
+         (let* ((key (car key-list))
+               (status (hash-ref ht key))
+               (x (car key))
+               (y (cadr key)))
+          (cond ((equal? status 'dead)
                  (draw-square x y c-length)
-                 (draw-cells (cdr coord-list)))
+                 (draw-cells ht (cdr key-list)))
                 (else
-                 (draw-cells (cdr coord-list))))))))
+                 (draw-cells ht (cdr key-list))))))))
+
 
          
-
+         
+;(populate-table cell-ht (gen-xy max-xy))
 
 
 
