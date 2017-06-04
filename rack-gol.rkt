@@ -2,19 +2,25 @@
 (require racket/gui)
 (require racket/draw)
 
-(define cell-length 20)           
-(define frame-height 1000)      
-(define frame-width 700)
+; Constants
+(define INIT-FRAME-HEIGHT 1000)
+(define INIT-FRAME-WIDTH 700)
+(define cell-length 10)           
 (define color-black (make-object color% 0 0 0))
 (define color-dead-str "black")
 (define color-alive-str "green")
-(define sleep-delay 0)
+(define sleep-delay (/ 1 10))
+
+; State variables
+(define frame-height INIT-FRAME-HEIGHT)      
+(define frame-width INIT-FRAME-WIDTH)
 (define max-x
   (exact-round (/ frame-width cell-length)))
 (define max-y
   (exact-round (/ frame-height cell-length)))
 (define cell-keys '())
-(define cell-buf '())
+(define cell-ht (make-hash))
+(define cell-buf (make-hash))
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -26,8 +32,7 @@
            (set! cell-keys
                  (cons (list i j) cell-keys))))))
 
-; Hash table for the cells
-(define cell-ht (make-hash))
+
 
 ; Populates the hash table with every cell initially dead
 (define (populate-table ht key-list)
@@ -126,17 +131,23 @@
     (list num-alive num-dead)))
 
 ; Updates the state of a cell based on its neighbors
-(define (cell-next-gen ht key)
+(define (cell-next-gen ht ht-buf key)
   (let* ((neighbors (cell-neighbors-moore key))
          (num-neighbors (cell-neighbors-count ht key))
          (num-alive (car num-neighbors))
          (num-dead (cadr num-neighbors))
          (status (hash-ref ht key)))
     (cond ((equal? status 'alive)
-           (cond ((< num-alive 2) (hash-set! ht key 'dead))  
-                 ((> num-alive 3) (hash-set! ht key 'dead)))) 
+           (cond ((< num-alive 2) (hash-set! ht-buf key 'dead))  
+                 ((> num-alive 3) (hash-set! ht-buf key 'dead)))) 
           ((equal? status 'dead)
-           (cond ((equal? num-alive 3) (hash-set! ht key 'alive)))))))
+           (cond ((equal? num-alive 3) (hash-set! ht-buf key 'alive)))))))
+
+(define (board-next-gen ht ht-buf key-list)
+  (cond ((null? key-list) #t)
+        (else
+         (cell-next-gen ht ht-buf (car key-list))
+         (board-next-gen ht ht-buf (cdr key-list)))))
   
 
 
@@ -178,17 +189,19 @@
               (send event get-y)
               'kill))
             (else #f)))
-    (define/override (on-paint)               ; handles window resizing
+    (define/override (on-paint)
       (begin
         (send board-canvas set-canvas-background color-black)
-        (set! frame-height (send frame get-height))
-        (set! frame-width (send frame get-width))
-        (set! max-x (exact-round (/ frame-width cell-length)))
-        (set! max-y (exact-round (/ frame-height cell-length)))
-        (set! cell-keys '())
-        (gen-xy max-x max-y)
-        (update-table cell-ht cell-keys)
-        (draw-cells cell-ht cell-keys)))
+        (cond ((not (and (equal? frame-height INIT-FRAME-HEIGHT)  ; handles window resizing
+                        (equal? frame-height INIT-FRAME-WIDTH)))
+               (set! frame-height (send frame get-height))
+               (set! frame-width (send frame get-width))
+               (set! max-x (exact-round (/ frame-width cell-length)))
+               (set! max-y (exact-round (/ frame-height cell-length)))
+               (set! cell-keys '())
+               (gen-xy max-x max-y)
+               (update-table cell-ht cell-keys)
+               (draw-cells cell-ht cell-keys)))))
       (super-new)))
 
 (define frame (new frame%
@@ -227,11 +240,27 @@
         (draw-cells cell-ht cell-keys))))
 
 (send frame show #t)
-(sleep/yield sleep-delay)
+(sleep/yield 0)
 
 (gen-xy max-x max-y)
 (populate-table cell-ht cell-keys)
+(set! cell-buf (hash-copy cell-ht))
 (draw-cells cell-ht cell-keys)
+
+; Produces one iteration of the game
+(define (game-one-iter)
+  (begin
+    (set! cell-buf (hash-copy cell-ht))         ; copy current state to buffer
+    (board-next-gen cell-ht cell-buf cell-keys) ; get next state in buffer
+    (draw-cells cell-buf cell-keys)             ; draw next state
+    (set! cell-ht (hash-copy cell-buf))))       ; make next state the current state
+
+; Main loop
+(define (start-loop)
+  (begin
+    (game-one-iter)
+    ;(sleep/yield 0)
+    (start-loop)))
 
 
 
