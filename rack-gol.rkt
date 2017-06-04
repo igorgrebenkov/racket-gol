@@ -5,7 +5,7 @@
 ; Constants
 (define INIT-FRAME-HEIGHT 1000)
 (define INIT-FRAME-WIDTH 700)
-(define cell-length 30)           
+(define cell-length 5)           
 (define color-black (make-object color% 0 0 0))
 (define color-dead-str "black")
 (define color-alive-str "green")
@@ -40,13 +40,6 @@
            (begin
              (hash-set! ht key 'dead)
              (init-table ht (cdr key-list)))))))
-
-; Draws the cells in ht on the board
-;(define (draw-board ht)
-  ;(for ([(key status) (in-hash ht)])
-      ;(cond ((equal? status 'alive) (draw-square key color-alive-str))
-            ;((equal? status 'dead) (draw-square key color-dead-str)))))
-
 
 (define (update-table ht)
   (for ([(key status) (in-hash ht)])
@@ -95,20 +88,12 @@
 
 ; Returns a hash table containing all elements in ht2
 ; whose value differs from that in ht1 with the same key
-(define (hash-diff ht1 ht2 key-list)
+(define (hash-diff ht1 ht2)
   (let ((result-ht (make-hash)))
-    (letrec ((loop (lambda (ht1 ht2 key-list)
-                          (cond ((null? key-list) #t)
-                                (else
-                                 (let* ((key (car key-list))
-                                        (value1 (hash-ref ht1 key))
-                                        (value2 (hash-ref ht2 key)))
-                                   (cond ((not (equal? value1 value2))
-                                          (hash-set! result-ht key value2)
-                                          (loop ht1 ht2 (cdr key-list)))
-                                         (else
-                                          (loop ht1 ht2 (cdr key-list))))))))))
-      (loop ht1 ht2 key-list))
+    (for ([(key value1) (in-hash ht1)])
+      (let ((value2 (hash-ref ht2 key)))
+        (cond ((not (equal? value1 value2))
+               (hash-set! result-ht key value2)))))
     result-ht))
                                                            
 ; Updates the state of a cell based on its neighbors
@@ -249,7 +234,7 @@
     (set! cell-buf (hash-copy cell-ht))         ; copy current state to buffer
     (board-next-gen cell-ht cell-buf cell-keys) ; get next state in buffer
     (draw-board                                 ; draw cells that have changed state
-     (hash-diff cell-ht cell-buf cell-keys))     
+     (hash-diff cell-ht cell-buf))     
     (set! cell-ht (hash-copy cell-buf))))       ; buffer becomes new current state 
 
 ; Main loop
