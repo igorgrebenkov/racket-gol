@@ -5,10 +5,10 @@
 ; Constants
 (define INIT-FRAME-HEIGHT 700)
 (define INIT-FRAME-WIDTH 1000)
-(define cell-length 20)           
+(define cell-length 15)           
 (define color-black (make-object color% 0 0 0))
 (define color-dead-str "black")
-(define color-alive-str "green")
+(define color-alive-str "red")
 (define sleep-delay (/ 1 10))
 (define sim-started 'false)
 
@@ -74,14 +74,12 @@
 
 
 (define (grow-table ht x y)
-  (display 'SHIT)
   (let ((new-max-x (exact-round (/ frame-width cell-length)))
         (new-max-y (exact-round (/ frame-height cell-length))))
   (for ([i (in-range 0 new-max-x)])
     (for ([j (in-range 0 new-max-y)])
       (let* ((key (list i j)))
         (cond ((not (hash-has-key? ht key))
-               (display 'SHIT)
                (hash-set! ht key 'dead))
               (else
                (hash-set! ht key (hash-ref ht key))))))
@@ -229,7 +227,7 @@
         (cond ((and (equal? sim-started 'true)
                (not (and (equal? curr-frame-height INIT-FRAME-HEIGHT)  ; handles window resizing
                          (equal? curr-frame-width INIT-FRAME-WIDTH))))
-               (printf "~a #\n" curr-frame-height)
+               ;(printf "~a #\n" curr-frame-height)
                (set! frame-height curr-frame-height)
                (set! frame-width curr-frame-width)
                    ;(displayln '_)
