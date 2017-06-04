@@ -5,7 +5,7 @@
 ; Constants
 (define INIT-FRAME-HEIGHT 1000)
 (define INIT-FRAME-WIDTH 700)
-(define cell-length 5)           
+(define cell-length 20)           
 (define color-black (make-object color% 0 0 0))
 (define color-dead-str "black")
 (define color-alive-str "green")
@@ -110,11 +110,9 @@
            (cond ((equal? num-alive 3) (hash-set! ht-buf key 'alive)))))))
 
 ; Updates the cell buffer with the next state of the board
-(define (board-next-gen ht ht-buf key-list)
-  (cond ((null? key-list) #t)
-        (else
-         (cell-next-gen ht ht-buf (car key-list))
-         (board-next-gen ht ht-buf (cdr key-list)))))
+(define (board-next-gen ht ht-buf)
+  (for ([(key value1) (in-hash ht)])
+    (cell-next-gen ht ht-buf key)))
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% VIEW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -173,6 +171,9 @@
               (send event get-y)
               'kill))
             (else #f)))
+    (define/override (on-char event)
+      (let ((key-char (send event get-key-code)))
+           (cond ((equal? key-char 'f1) (start-loop))))) ; start the simulation with f1
     (define/override (on-paint)
       (begin
         (send board-canvas set-canvas-background color-black)
@@ -195,10 +196,7 @@
 
 (define board-canvas (new game-canvas%	 
                     [parent frame]	 
-                    [style '()]
-                    [paint-callback
-                     (lambda (canvas dc)
-                       (send canvas set-canvas-background color-black))]))
+                    [style '()]))
 
 (define dc (send board-canvas get-dc))
 
@@ -232,16 +230,17 @@
 (define (game-one-iter)
   (begin
     (set! cell-buf (hash-copy cell-ht))         ; copy current state to buffer
-    (board-next-gen cell-ht cell-buf cell-keys) ; get next state in buffer
+    (board-next-gen cell-ht cell-buf) ; get next state in buffer
+    (let ((hash-changes (hash-diff cell-ht cell-buf)))
     (draw-board                                 ; draw cells that have changed state
      (hash-diff cell-ht cell-buf))     
-    (set! cell-ht (hash-copy cell-buf))))       ; buffer becomes new current state 
+    (set! cell-ht cell-buf))))      ; buffer becomes new current state 
 
 ; Main loop
 (define (start-loop)
   (begin
     (game-one-iter)
-    ;(sleep/yield 0)
+    (sleep/yield sleep-delay)
     (start-loop)))
 
 
