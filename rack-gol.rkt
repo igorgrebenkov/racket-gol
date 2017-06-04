@@ -3,13 +3,14 @@
 (require racket/draw)
 
 ; Constants
-(define INIT-FRAME-HEIGHT 1000)
-(define INIT-FRAME-WIDTH 700)
+(define INIT-FRAME-HEIGHT 700)
+(define INIT-FRAME-WIDTH 1000)
 (define cell-length 20)           
 (define color-black (make-object color% 0 0 0))
 (define color-dead-str "black")
 (define color-alive-str "green")
 (define sleep-delay (/ 1 10))
+(define sim-started 'false)
 
 ; State variables
 (define frame-height INIT-FRAME-HEIGHT)      
@@ -41,6 +42,52 @@
              (hash-set! ht key 'dead)
              (init-table ht (cdr key-list)))))))
 
+
+(define (resize-table ht curr-x curr-y)
+  (let ((new-max-x (exact-round (/ frame-width cell-length)))
+        (new-max-y (exact-round (/ frame-height cell-length))))
+    (cond ((and (> new-max-x curr-x) (> new-max-y curr-y))
+           ;(define temp2 (list new-max-x new-max-y))
+           ;(printf "x: ~a, y: ~a #\n" (first temp2) (second temp2))
+           (for ([i (in-range curr-x (add1 new-max-x))])
+             ;(printf "#\n")
+             (for ([j (in-range 0 (add1 new-max-y))])
+               ;(define temp (list i j))
+               ;(printf "(~a ~a) " (first temp) (second temp))
+               ;(hash-set! ht (list i j) 'dead)
+                      ;(printf "(~a ~a) " (car (list j i)) (cadr (list j i)))
+               (hash-set! ht (list i j) 'dead)))
+           (for ([i (in-range 0 (add1 new-max-x))])
+             (for ([j (in-range curr-y (add1 new-max-y))])
+               (hash-set! ht (list i j) 'dead))))
+           ;(printf "#\n"))
+          ((> new-max-x curr-x)
+           (for ([i (in-range curr-x (add1 new-max-x))])
+             (for ([j (in-range 0 (add1 curr-y))])
+               (hash-set! ht (list i j) 'dead))))
+          ((> new-max-y curr-y)
+           (for ([i (in-range 0 (add1 curr-x))])
+             (for ([j (in-range curr-y (add1 new-max-y))])
+               (hash-set! ht (list i j) 'dead)))))
+    (set! max-x new-max-x)
+    (set! max-y new-max-y)))
+
+
+(define (grow-table ht x y)
+  (display 'SHIT)
+  (let ((new-max-x (exact-round (/ frame-width cell-length)))
+        (new-max-y (exact-round (/ frame-height cell-length))))
+  (for ([i (in-range 0 new-max-x)])
+    (for ([j (in-range 0 new-max-y)])
+      (let* ((key (list i j)))
+        (cond ((not (hash-has-key? ht key))
+               (display 'SHIT)
+               (hash-set! ht key 'dead))
+              (else
+               (hash-set! ht key (hash-ref ht key))))))
+  (set! max-x new-max-x)
+  (set! max-y new-max-y))))
+       
 (define (update-table ht)
   (for ([(key status) (in-hash ht)])
     (cond ((not (hash-has-key? ht key))
@@ -177,22 +224,28 @@
     (define/override (on-paint)
       (begin
         (send board-canvas set-canvas-background color-black)
-        (cond ((not (and (equal? frame-height INIT-FRAME-HEIGHT)  ; handles window resizing
-                        (equal? frame-height INIT-FRAME-WIDTH)))
-               (set! frame-height (send frame get-height))
-               (set! frame-width (send frame get-width))
-               (set! max-x (exact-round (/ frame-width cell-length)))
-               (set! max-y (exact-round (/ frame-height cell-length)))
-               (set! cell-keys '())
-               (gen-xy max-x max-y)
-               (update-table cell-ht)
-               (draw-board cell-ht)))))
-      (super-new)))
+        (let ((curr-frame-height (send frame get-height))
+              (curr-frame-width (send frame get-width)))
+        (cond ((and (equal? sim-started 'true)
+               (not (and (equal? curr-frame-height INIT-FRAME-HEIGHT)  ; handles window resizing
+                         (equal? curr-frame-width INIT-FRAME-WIDTH))))
+               (printf "~a #\n" curr-frame-height)
+               (set! frame-height curr-frame-height)
+               (set! frame-width curr-frame-width)
+                   ;(displayln '_)
+                   ;(displayln new-max-x)
+                   ;(set! cell-keys '())
+                   ;(gen-xy max-x max-y)
+                   ;(update-table cell-ht)
+                   (resize-table cell-ht max-x max-y)
+                   
+                   (draw-board cell-ht))))))
+    (super-new)))
 
 (define frame (new frame%
                    [label "Game of Life"]
-                   [width frame-height]
-                   [height frame-width]))
+                   [width frame-width]
+                   [height frame-height]))
 
 (define board-canvas (new game-canvas%	 
                     [parent frame]	 
@@ -225,7 +278,7 @@
 (init-table cell-ht cell-keys)
 (set! cell-buf (hash-copy cell-ht))
 (draw-board cell-ht)
-
+(set! sim-started 'true)
 ; Produces one iteration of the game
 (define (game-one-iter)
   (begin
@@ -239,6 +292,7 @@
 ; Main loop
 (define (start-loop)
   (begin
+    (set! sim-started 'true)
     (game-one-iter)
     (sleep/yield sleep-delay)
     (start-loop)))
