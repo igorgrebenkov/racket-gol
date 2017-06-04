@@ -1,12 +1,13 @@
 #lang racket
 (require racket/gui)
 (require racket/draw)
+(require profile)
 
 ; Constants
 (define INIT-FRAME-HEIGHT 700)
 (define INIT-FRAME-WIDTH 1000)
-(define INIT-CELL-LENGTH 20)
-(define INIT-SLEEP-DELAY (/ 1 25))
+(define INIT-CELL-LENGTH 5)
+(define INIT-SLEEP-DELAY (/ 1 10000))
 (define color-black (make-object color% 0 0 0))
 (define color-dead-str "black")
 (define color-alive-str "green")
@@ -34,12 +35,12 @@
       (let ((key (list i j)))
         (hash-set! ht key 'dead)))))
 
-; Increases the size of the table
+; Increases/decreases the size of the table
 ; Used to dynamically adjust the table size when resizing the frame
 (define (cell-resize-table ht curr-x curr-y)
   (let ((new-max-x (exact-round (/ frame-width cell-length)))
         (new-max-y (exact-round (/ frame-height cell-length))))
-    (cond ((and (> new-max-x curr-x) (> new-max-y curr-y)) ; height/width increased
+    (cond ((and (> new-max-x curr-x) (> new-max-y curr-y)) ; height AND width increased
            (for ([i (in-range curr-x (add1 new-max-x))])
              (for ([j (in-range 0 (add1 new-max-y))])
                (hash-set! ht (list i j) 'dead)))
@@ -53,7 +54,14 @@
           ((> new-max-y curr-y)                            ; height increased only
            (for ([i (in-range 0 (add1 curr-x))])
              (for ([j (in-range curr-y (add1 new-max-y))])
-               (hash-set! ht (list i j) 'dead)))))
+               (hash-set! ht (list i j) 'dead))))
+          ((or (< new-max-x curr-x) (< new-max-y curr-y))  ; height OR width decreased
+           (display 'shit)
+           (let ((new-hash (make-hash)))
+           (for ([i (in-range 0 (add1 new-max-x))])
+             (for ([j (in-range 0 (add1 new-max-y))])
+               (hash-set! new-hash (list i j) (hash-ref cell-ht (list i j)))))
+             (set! cell-ht (hash-copy new-hash)))))
     (set! max-x new-max-x)
     (set! max-y new-max-y)))
 
@@ -122,7 +130,7 @@
 
 ; Updates the cell buffer with the next state of the board
 (define (board-next-gen ht ht-buf)
-  (for ([(key value1) (in-hash ht)])
+  (for ([(key value) (in-hash ht)])
     (cell-next-gen ht ht-buf key)))
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% VIEW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -240,20 +248,18 @@
 ; Produces one iteration of the game
 (define (game-one-iter)
   (begin
-    (set! cell-buf (hash-copy cell-ht))         ; copy current state to buffer
-    (board-next-gen cell-ht cell-buf) ; get next state in buffer
+    (set! cell-buf (hash-copy cell-ht))        
+    (board-next-gen cell-ht cell-buf) 
     (let ((hash-changes (hash-diff cell-ht cell-buf)))
-    (draw-board                                 ; draw cells that have changed state
-     (hash-diff cell-ht cell-buf))     
-    (set! cell-ht cell-buf))))      ; buffer becomes new current state 
+      (draw-board hash-changes)     
+      (set! cell-ht cell-buf))))      
 
 ; Main loop
 (define (start-loop)
+  (for ([i (in-range 0 100)])
   (begin
-    (set! sim-started 'true)
-    (game-one-iter)
     (sleep/yield sleep-delay)
-    (start-loop)))
+    (game-one-iter))))
 
 
 
