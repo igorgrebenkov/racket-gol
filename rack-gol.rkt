@@ -41,16 +41,17 @@
              (hash-set! ht key 'dead)
              (init-table ht (cdr key-list)))))))
 
-; Updates the hash table with keys that don't already exist
-(define (update-table ht key-list)
-  (cond ((null? key-list) #t)
-        (else
-         (let ((key (car key-list)))
-           (cond ((not (hash-has-key? ht key))
-                  (hash-set! ht key 'dead)
-                  (update-table ht (cdr key-list)))
-                 (else
-                  (update-table ht (cdr key-list))))))))
+; Draws the cells in ht on the board
+;(define (draw-board ht)
+  ;(for ([(key status) (in-hash ht)])
+      ;(cond ((equal? status 'alive) (draw-square key color-alive-str))
+            ;((equal? status 'dead) (draw-square key color-dead-str)))))
+
+
+(define (update-table ht)
+  (for ([(key status) (in-hash ht)])
+    (cond ((not (hash-has-key? ht key))
+           (hash-set! ht key 'dead)))))
 
 ; Generates a list of the Moore neighborhood of a cell
 (define (cell-neighbors-moore key)
@@ -198,7 +199,7 @@
                (set! max-y (exact-round (/ frame-height cell-length)))
                (set! cell-keys '())
                (gen-xy max-x max-y)
-               (update-table cell-ht cell-keys)
+               (update-table cell-ht)
                (draw-board cell-ht)))))
       (super-new)))
 
