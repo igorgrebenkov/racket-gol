@@ -125,10 +125,18 @@
       (count-loop neighbors))
     (list num-alive num-dead)))
 
-
-;(define (cell-next-gen key)
-  ;(let* ((neighbors (cell-neighbors-moore key))
-         ;(num-neighbors (length neighbors))
+; Updates the state of a cell based on its neighbors
+(define (cell-next-gen ht key)
+  (let* ((neighbors (cell-neighbors-moore key))
+         (num-neighbors (cell-neighbors-count ht key))
+         (num-alive (car num-neighbors))
+         (num-dead (cadr num-neighbors))
+         (status (hash-ref ht key)))
+    (cond ((equal? status 'alive)
+           (cond ((< num-alive 2) (hash-set! ht key 'dead))  
+                 ((> num-alive 3) (hash-set! ht key 'dead)))) 
+          ((equal? status 'dead)
+           (cond ((equal? num-alive 3) (hash-set! ht key 'alive)))))))
   
 
 
