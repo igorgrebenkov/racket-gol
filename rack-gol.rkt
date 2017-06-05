@@ -12,6 +12,8 @@
 (define color-dead-str "black")
 (define color-alive-str "green")
 (define sim-started 'false)
+(define ALIVE 1)
+(define DEAD 0)
 
 ; State variables
 (define cell-length INIT-CELL-LENGTH)  
@@ -33,7 +35,7 @@
   (for ([i (in-range 0 (add1 max-x))])
     (for ([j (in-range 0 (add1 max-y))])
       (let ((key (list i j)))
-        (hash-set! ht key 'dead)))))
+        (hash-set! ht key DEAD)))))
 
 ; Increases/decreases the size of the table
 ; Used to dynamically adjust the table size when resizing the frame
@@ -43,18 +45,18 @@
     (cond ((and (> new-max-x curr-x) (> new-max-y curr-y)) ; height AND width increased
            (for ([i (in-range curr-x (add1 new-max-x))])
              (for ([j (in-range 0 (add1 new-max-y))])
-               (hash-set! ht (list i j) 'dead)))
+               (hash-set! ht (list i j) DEAD)))
            (for ([i (in-range 0 (add1 new-max-x))])
              (for ([j (in-range curr-y (add1 new-max-y))]) 
-               (hash-set! ht (list i j) 'dead))))
+               (hash-set! ht (list i j) DEAD))))
           ((> new-max-x curr-x)                            ; width increased only
            (for ([i (in-range curr-x (add1 new-max-x))])
              (for ([j (in-range 0 (add1 curr-y))])
-               (hash-set! ht (list i j) 'dead))))
+               (hash-set! ht (list i j) DEAD))))
           ((> new-max-y curr-y)                            ; height increased only
            (for ([i (in-range 0 (add1 curr-x))])
              (for ([j (in-range curr-y (add1 new-max-y))])
-               (hash-set! ht (list i j) 'dead))))
+               (hash-set! ht (list i j) DEAD))))
           ((or (< new-max-x curr-x) (< new-max-y curr-y))  ; height OR width decreased
            (display 'shit)
            (let ((new-hash (make-hash)))
@@ -86,24 +88,33 @@
           bottom
           bottom-right)))
 
-; Returns a list with the number of alive/dead cells -> '(alive dead)
-(define (cell-neighbors-count ht key)
-  (let ((num-alive 0)
-        (num-dead 0)
-        (neighbors (cell-neighbors-moore key)))
-    (letrec ((count-loop (lambda (neighbor-list)
-                           (cond ((null? neighbor-list) #t)
-                                 (else
-                                  (let* ((key (car neighbor-list))
-                                         (status (hash-ref ht key)))
-                                    (cond ((equal? status 'alive)
-                                           (set! num-alive (add1 num-alive))
-                                           (count-loop (cdr neighbor-list)))
-                                          ((equal? status 'dead)
-                                           (set! num-dead (add1 num-dead))
-                                           (count-loop (cdr neighbor-list))))))))))
-      (count-loop neighbors))
-    (list num-alive num-dead)))
+; Get a list of all keys for all alive cells and their neighbors
+(define (cell-active ht)
+  (for*/list ([(key value) (in-hash ht)]
+             [i (cell-neighbors-moore key)]
+             #:when (equal? value ALIVE))
+    key i))
+
+; Calculates the next generation of the board
+(define (board-next-gen active-cells ht ht-buf)
+  (let ((alive-count 0))
+  (for ([key active-cells])
+    (let ((value (hash-ref ht key))
+          (neighbors (cell-neighbors-moore key)))
+      (for ([neighbor-key neighbors])
+        (let ((neighbor-value (hash-ref ht neighbor-key)))
+          (set! alive-count (+ alive-count neighbor-value))))
+      (cell-next-gen key value alive-count ht-buf)
+      (printf "~a \n" alive-count)
+      (set! alive-count 0)))))
+
+; Updates the state of a cell based on its neighbors
+(define (cell-next-gen key status num-alive ht-buf)
+    (cond ((equal? status ALIVE)
+           (cond ((< num-alive 2) (hash-set! ht-buf key DEAD))  
+                 ((> num-alive 3) (hash-set! ht-buf key DEAD)))) 
+          ((equal? status DEAD)
+           (cond ((equal? num-alive 3) (hash-set! ht-buf key ALIVE))))))
 
 ; Returns a hash table containing all elements in ht2
 ; whose value differs from that in ht1 with the same key
@@ -113,25 +124,7 @@
       (let ((value2 (hash-ref ht2 key)))
         (cond ((not (equal? value1 value2))
                (hash-set! result-ht key value2)))))
-    result-ht))
-                                                           
-; Updates the state of a cell based on its neighbors
-(define (cell-next-gen ht ht-buf key)
-  (let* ((neighbors (cell-neighbors-moore key))
-         (num-neighbors (cell-neighbors-count ht key))
-         (num-alive (car num-neighbors))
-         (num-dead (cadr num-neighbors))
-         (status (hash-ref ht key)))
-    (cond ((equal? status 'alive)
-           (cond ((< num-alive 2) (hash-set! ht-buf key 'dead))  
-                 ((> num-alive 3) (hash-set! ht-buf key 'dead)))) 
-          ((equal? status 'dead)
-           (cond ((equal? num-alive 3) (hash-set! ht-buf key 'alive)))))))
-
-; Updates the cell buffer with the next state of the board
-(define (board-next-gen ht ht-buf)
-  (for ([(key value) (in-hash ht)])
-    (cell-next-gen ht ht-buf key)))
+    result-ht))                                                         
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% VIEW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -142,27 +135,27 @@
     (cond ((equal? action 'toggle-life)
            (cell-toggle-status cell-ht (list cell-x cell-y)))
           ((equal? action 'give-life)
-           (cell-update-status cell-ht (list cell-x cell-y) 'alive))
+           (cell-update-status cell-ht (list cell-x cell-y) ALIVE))
           ((equal? action 'kill)
-           (cell-update-status cell-ht (list cell-x cell-y) 'dead)))))
+           (cell-update-status cell-ht (list cell-x cell-y) DEAD)))))
 
 ; Sets a cell's status and draws it on the canvas (used for mouse actions)
 (define (cell-update-status ht key status)
   (begin
     (hash-set! ht key status)
-    (cond ((equal? status 'alive)
+    (cond ((equal? status ALIVE)
            (draw-square key color-alive-str))
-          ((equal? status 'dead)
+          ((equal? status DEAD)
            (draw-square key color-dead-str)))))
 
 ; Toggles a cell's status and draws it on the canvas (used for mouse actions)
 (define (cell-toggle-status ht key)
   (let ((status (hash-ref ht key)))
-    (cond ((equal? status 'alive)
-           (hash-set! ht key 'dead)
+    (cond ((equal? status ALIVE)
+           (hash-set! ht key DEAD)
            (draw-square key color-dead-str))
-          ((equal? status 'dead)
-           (hash-set! ht key 'alive)
+          ((equal? status DEAD)
+           (hash-set! ht key ALIVE)
            (draw-square key color-alive-str)))))
 
 ; Custom canvas used for the gameboard
@@ -233,8 +226,8 @@
 ; Draws the cells in ht on the board
 (define (draw-board ht)
   (for ([(key status) (in-hash ht)])
-      (cond ((equal? status 'alive) (draw-square key color-alive-str))
-            ((equal? status 'dead) (draw-square key color-dead-str)))))
+      (cond ((equal? status ALIVE) (draw-square key color-alive-str))
+            ((equal? status DEAD) (draw-square key color-dead-str)))))
 
 (send frame show #t)
 (sleep/yield 0)
@@ -249,14 +242,14 @@
 (define (game-one-iter)
   (begin
     (set! cell-buf (hash-copy cell-ht))        
-    (board-next-gen cell-ht cell-buf) 
+    (board-next-gen (cell-active cell-ht) cell-ht cell-buf) 
     (let ((hash-changes (hash-diff cell-ht cell-buf)))
       (draw-board hash-changes)     
       (set! cell-ht cell-buf))))      
 
 ; Main loop
 (define (start-loop)
-  (for ([i (in-range 0 100)])
+  (for ([i (in-range 0 300)])
   (begin
     (sleep/yield sleep-delay)
     (game-one-iter))))
