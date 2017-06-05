@@ -4,17 +4,18 @@
 (require profile)
 
 ; Constants
-(define INIT-FRAME-HEIGHT 700)
-(define INIT-FRAME-WIDTH 1000)
+(define INIT-FRAME-HEIGHT 580)
+(define INIT-FRAME-WIDTH 600)
 (define INIT-CELL-LENGTH 5)
-(define INIT-SLEEP-DELAY (/ 1 1000))
+(define INIT-SLEEP-DELAY (/ 1 20))
 (define ALIVE 1)
 (define DEAD 0)
-(define color-black (make-object color% 0 0 0))
-(define color-dead-str "black")
-(define color-alive-str "green")
+(define color-background (make-object color% 0 0 0))
+(define color-dead "black")
+(define color-alive "lime")
+(define cell-inner-style 'solid)
 (define cell-border-style 'transparent)
-(define sim-started 'false)
+(define sim-started 'true)
 
 ; State variables
 (define cell-length INIT-CELL-LENGTH)  
@@ -30,40 +31,11 @@
 (define cell-buf (make-hash))
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 ; Copies the keys in a list (and their value) from ht1 to ht2
 (define (copy-ht keys ht1 ht2)
   (for ([key keys])
     (hash-set! ht2 key (hash-ref ht1 key))))
-
-; Increases/decreases the size of the table
-; Used to dynamically adjust the table size when resizing the frame
-(define (cell-resize-table ht curr-x curr-y)
-  (let ((new-max-x (exact-round (/ frame-width cell-length)))
-        (new-max-y (exact-round (/ frame-height cell-length))))
-    (cond ((and (> new-max-x curr-x) (> new-max-y curr-y)) ; height AND width increased
-           (for ([i (in-range curr-x (add1 new-max-x))])
-             (for ([j (in-range 0 (add1 new-max-y))])
-               (hash-set! ht (list i j) DEAD)))
-           (for ([i (in-range 0 (add1 new-max-x))])
-             (for ([j (in-range curr-y (add1 new-max-y))]) 
-               (hash-set! ht (list i j) DEAD))))
-          ((> new-max-x curr-x)                            ; width increased only
-           (for ([i (in-range curr-x (add1 new-max-x))])
-             (for ([j (in-range 0 (add1 curr-y))])
-               (hash-set! ht (list i j) DEAD))))
-          ((> new-max-y curr-y)                            ; height increased only
-           (for ([i (in-range 0 (add1 curr-x))])
-             (for ([j (in-range curr-y (add1 new-max-y))])
-               (hash-set! ht (list i j) DEAD))))
-          ((or (< new-max-x curr-x) (< new-max-y curr-y))  ; height OR width decreased
-           (display 'shit)
-           (let ((new-hash (make-hash)))
-           (for ([i (in-range 0 (add1 new-max-x))])
-             (for ([j (in-range 0 (add1 new-max-y))])
-               (hash-set! new-hash (list i j) (hash-ref cell-ht (list i j)))))
-             (set! cell-ht (hash-copy new-hash)))))
-    (set! max-x new-max-x)
-    (set! max-y new-max-y)))
 
 ; Populates the hash table with dead cells
 (define (cell-init-table ht max-x max-y)
@@ -124,6 +96,36 @@
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% VIEW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+; Increases/decreases the size of the table
+; Used to dynamically adjust the table size when resizing the frame
+(define (cell-resize-table ht curr-x curr-y)
+  (let ((new-max-x (exact-round (/ frame-width cell-length)))
+        (new-max-y (exact-round (/ frame-height cell-length))))
+    (cond ((and (> new-max-x curr-x) (> new-max-y curr-y)) ; height AND width increased
+           (for ([i (in-range curr-x (add1 new-max-x))])
+             (for ([j (in-range 0 (add1 new-max-y))])
+               (hash-set! ht (list i j) DEAD)))
+           (for ([i (in-range 0 (add1 new-max-x))])
+             (for ([j (in-range curr-y (add1 new-max-y))]) 
+               (hash-set! ht (list i j) DEAD))))
+          ((> new-max-x curr-x)                            ; width increased only
+           (for ([i (in-range curr-x (add1 new-max-x))])
+             (for ([j (in-range 0 (add1 curr-y))])
+               (hash-set! ht (list i j) DEAD))))
+          ((> new-max-y curr-y)                            ; height increased only
+           (for ([i (in-range 0 (add1 curr-x))])
+             (for ([j (in-range curr-y (add1 new-max-y))])
+               (hash-set! ht (list i j) DEAD))))
+          ((or (< new-max-x curr-x) (< new-max-y curr-y))  ; height OR width decreased
+           (display 'shit)
+           (let ((new-hash (make-hash)))
+           (for ([i (in-range 0 (add1 new-max-x))])
+             (for ([j (in-range 0 (add1 new-max-y))])
+               (hash-set! new-hash (list i j) (hash-ref cell-ht (list i j)))))
+             (set! cell-ht (hash-copy new-hash)))))
+    (set! max-x new-max-x)
+    (set! max-y new-max-y)))
+
 ; Action associated with mouse buttons for making cells dead/alive
 (define (mouse-click-action x y action)
   (let ((cell-x (exact-floor (/ x cell-length)))
@@ -140,19 +142,19 @@
   (begin
     (hash-set! ht key status)
     (cond ((equal? status ALIVE)
-           (draw-square key color-alive-str))
+           (draw-square key color-alive))
           ((equal? status DEAD)
-           (draw-square key color-dead-str)))))
+           (draw-square key color-dead)))))
 
 ; Toggles a cell's status and draws it on the canvas (used for mouse actions)
 (define (cell-toggle-status ht key)
   (let ((status (hash-ref ht key)))
     (cond ((equal? status ALIVE)
            (hash-set! ht key DEAD)
-           (draw-square key color-dead-str))
+           (draw-square key color-dead))
           ((equal? status DEAD)
            (hash-set! ht key ALIVE)
-           (draw-square key color-alive-str)))))
+           (draw-square key color-alive)))))
 
 ; Custom canvas used for the gameboard
 (define game-canvas%
@@ -185,7 +187,7 @@
     (define/override (on-paint)                          ; on-paint override
       (begin
         ; disabling this line looks cool
-        (send board-canvas set-canvas-background color-black)
+        (send board-canvas set-canvas-background color-background)
         (let ((curr-frame-height (send frame get-height))
               (curr-frame-width (send frame get-width)))
         (cond ((and (equal? sim-started 'true)
@@ -209,13 +211,13 @@
 
 (define dc (send board-canvas get-dc))
 
-; Draws a single square on the canvas at (x,y)
+; Draws a single square on the canvas at '(x,y)
 (define (draw-square key color)
   (let ((x (car key))
         (y (cadr key)))
   (begin
-    (send dc set-brush (make-object brush% color 'solid))
-    (send dc set-pen (make-object pen% color-black 0 cell-border-style))
+    (send dc set-brush (make-object brush% color cell-inner-style))
+    (send dc set-pen (make-object pen% color-dead 1 cell-border-style))
     (send dc draw-rectangle
           (* x cell-length)
           (* y cell-length)
@@ -224,15 +226,8 @@
 ; Draws the cells in ht on the board
 (define (draw-board ht)
   (for ([(key status) (in-hash ht)])
-      (cond ((equal? status ALIVE) (draw-square key color-alive-str))
-            ((equal? status DEAD) (draw-square key color-dead-str)))))
-
-; Draws the cells in ht on the board
-(define (clear-board ht)
-  (for ([(key status) (in-hash ht)])
-      (draw-square key color-dead-str)))
-
-
+      (cond ((equal? status ALIVE) (draw-square key color-alive))
+            ((equal? status DEAD) (draw-square key color-dead)))))
 
 ; Initialization
 (send frame show #t)
