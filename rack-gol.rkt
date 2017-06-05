@@ -4,10 +4,10 @@
 (require profile)
 
 ; Constants
-(define INIT-FRAME-HEIGHT 200)
-(define INIT-FRAME-WIDTH 200)
+(define INIT-FRAME-HEIGHT 700)
+(define INIT-FRAME-WIDTH 1000)
 (define INIT-CELL-LENGTH 5)
-(define INIT-SLEEP-DELAY (/ 1 100))
+(define INIT-SLEEP-DELAY (/ 1 30))
 (define color-black (make-object color% 0 0 0))
 (define color-dead-str "black")
 (define color-alive-str "green")
@@ -216,7 +216,7 @@
         (y (cadr key)))
   (begin
     (send dc set-brush (make-object brush% color 'solid))
-    (send dc set-pen (make-object pen% color-black 0 'solid))
+    (send dc set-pen (make-object pen% color-black 0 'transparent))
     (send dc draw-rectangle
           (* x cell-length)
           (* y cell-length)
@@ -234,12 +234,13 @@
       (draw-square key color-dead-str)))
 
 
-(send frame show #t)
-(sleep/yield 0)
 
 ; Initialization
+(send frame show #t)
+(sleep/yield 0)
+(send board-canvas refresh)
 (cell-init-table cell-ht max-x max-y)     
-(draw-board cell-ht)                 
+;(draw-board cell-ht)                 
 (set! sim-started 'true)
 
 ; Produces one iteration of the game
@@ -249,14 +250,15 @@
       (copy-ht active-cells cell-ht cell-buf)
       (board-next-gen active-cells cell-ht cell-buf) 
       (draw-board cell-buf)     
-      (copy-ht active-cells cell-buf cell-ht))))
+      (copy-ht active-cells cell-buf cell-ht)
+      (set! cell-buf (make-hash)))))
 
 ; Main loop
 (define (start-loop)
-  (for ([i (in-range 0 300)])
   (begin
-    (sleep/yield sleep-delay)
-    (game-one-iter))))
+    (for ([i (in-range 0 +inf.0)])
+      (game-one-iter)
+      (sleep/yield sleep-delay))))
 
 
 
