@@ -30,17 +30,10 @@
 (define cell-buf (make-hash))
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-; Copys the keys in a list (and their value) from ht1 to ht2
+; Copies the keys in a list (and their value) from ht1 to ht2
 (define (copy-ht keys ht1 ht2)
   (for ([key keys])
     (hash-set! ht2 key (hash-ref ht1 key))))
-
-; Populates the hash table with dead cells
-(define (cell-init-table ht max-x max-y)
-  (for ([i (in-range 0 (add1 max-x))])
-    (for ([j (in-range 0 (add1 max-y))])
-      (let ((key (list i j)))
-        (hash-set! ht key DEAD)))))
 
 ; Increases/decreases the size of the table
 ; Used to dynamically adjust the table size when resizing the frame
@@ -71,6 +64,13 @@
              (set! cell-ht (hash-copy new-hash)))))
     (set! max-x new-max-x)
     (set! max-y new-max-y)))
+
+; Populates the hash table with dead cells
+(define (cell-init-table ht max-x max-y)
+  (for ([i (in-range 0 (add1 max-x))])
+    (for ([j (in-range 0 (add1 max-y))])
+      (let ((key (list i j)))
+        (hash-set! ht key DEAD)))))
 
 ; Generates a list of the Moore neighborhood of a cell
 (define (cell-neighbors-moore key)
@@ -104,8 +104,6 @@
 (define (cell-next-gen key status num-alive ht-buf)
     (cond ((equal? status ALIVE)
            (cond ((or (< num-alive 2) (> num-alive 3))
-                  (hash-set! ht-buf key DEAD))  
-                 ((> num-alive 3)
                   (hash-set! ht-buf key DEAD)))) 
           (else
            (equal? status DEAD)
