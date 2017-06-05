@@ -29,6 +29,10 @@
 (define cell-buf (make-hash))
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+; Copys the keys in a list (and their value) from ht1 to ht2
+(define (copy-ht keys ht1 ht2)
+  (for ([key keys])
+    (hash-set! ht2 key (hash-ref ht1 key))))
 
 ; Populates the hash table with dead cells
 (define (cell-init-table ht max-x max-y)
@@ -95,6 +99,18 @@
              #:when (equal? value ALIVE))
     key i))
 
+; Updates the state of a cell based on its neighbors
+(define (cell-next-gen key status num-alive ht-buf)
+    (cond ((equal? status ALIVE)
+           (cond ((or (< num-alive 2) (> num-alive 3))
+                  (hash-set! ht-buf key DEAD))  
+                 ((> num-alive 3)
+                  (hash-set! ht-buf key DEAD)))) 
+          (else
+           (equal? status DEAD)
+           (cond ((equal? num-alive 3)
+                  (hash-set! ht-buf key ALIVE))))))
+
 ; Calculates the next generation of the board
 (define (board-next-gen active-cells ht ht-buf)
   (let ((alive-count 0))
@@ -106,28 +122,6 @@
           (set! alive-count (+ alive-count neighbor-value))))
       (cell-next-gen key value alive-count ht-buf)
       (set! alive-count 0)))))
-
-; Updates the state of a cell based on its neighbors
-(define (cell-next-gen key status num-alive ht-buf)
-    (cond ((equal? status ALIVE)
-           (cond ((< num-alive 2) (hash-set! ht-buf key DEAD))  
-                 ((> num-alive 3) (hash-set! ht-buf key DEAD)))) 
-          ((equal? status DEAD)
-           (cond ((equal? num-alive 3) (hash-set! ht-buf key ALIVE))))))
-
-; Returns a hash table containing all elements in ht2
-; whose value differs from that in ht1 with the same key
-(define (hash-diff ht1 ht2)
-  (let ((result-ht (make-hash)))
-    (for ([(key value1) (in-hash ht1)])
-      (let ((value2 (hash-ref ht2 key)))
-        (cond ((not (equal? value1 value2))
-               (hash-set! result-ht key value2)))))
-    result-ht))
-
-(define (copy-ht keys ht1 ht2)
-  (for ([key keys])
-    (hash-set! ht2 key (hash-ref ht1 key))))
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% VIEW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -232,12 +226,12 @@
       (cond ((equal? status ALIVE) (draw-square key color-alive-str))
             ((equal? status DEAD) (draw-square key color-dead-str)))))
 
+
 (send frame show #t)
 (sleep/yield 0)
 
 ; Initialization
 (cell-init-table cell-ht max-x max-y)     
-(set! cell-buf (hash-copy cell-ht))  
 (draw-board cell-ht)                 
 (set! sim-started 'true)
 
@@ -247,9 +241,8 @@
     (let ((active-cells (cell-active cell-ht)))
       (copy-ht active-cells cell-ht cell-buf)
       (board-next-gen active-cells cell-ht cell-buf) 
-      (let ((hash-changes (hash-diff cell-ht cell-buf)))
-        (draw-board hash-changes)     
-        (copy-ht active-cells cell-buf cell-ht)))))
+      (draw-board cell-buf)     
+      (copy-ht active-cells cell-buf cell-ht))))
 
 ; Main loop
 (define (start-loop)
