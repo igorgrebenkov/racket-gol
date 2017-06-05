@@ -7,13 +7,14 @@
 (define INIT-FRAME-HEIGHT 700)
 (define INIT-FRAME-WIDTH 1000)
 (define INIT-CELL-LENGTH 5)
-(define INIT-SLEEP-DELAY (/ 1 30))
+(define INIT-SLEEP-DELAY (/ 1 1000))
+(define ALIVE 1)
+(define DEAD 0)
 (define color-black (make-object color% 0 0 0))
 (define color-dead-str "black")
 (define color-alive-str "green")
+(define cell-border-style 'transparent)
 (define sim-started 'false)
-(define ALIVE 1)
-(define DEAD 0)
 
 ; State variables
 (define cell-length INIT-CELL-LENGTH)  
@@ -216,7 +217,7 @@
         (y (cadr key)))
   (begin
     (send dc set-brush (make-object brush% color 'solid))
-    (send dc set-pen (make-object pen% color-black 0 'transparent))
+    (send dc set-pen (make-object pen% color-black 0 cell-border-style))
     (send dc draw-rectangle
           (* x cell-length)
           (* y cell-length)
@@ -239,14 +240,13 @@
 (send frame show #t)
 (sleep/yield 0)
 (send board-canvas refresh)
-(cell-init-table cell-ht max-x max-y)     
-;(draw-board cell-ht)                 
+(cell-init-table cell-ht max-x max-y)                   
 (set! sim-started 'true)
 
 ; Produces one iteration of the game
 (define (game-one-iter)
   (begin
-    (let ((active-cells (cell-active cell-ht)))
+    (let ((active-cells (remove-duplicates (cell-active cell-ht))))
       (copy-ht active-cells cell-ht cell-buf)
       (board-next-gen active-cells cell-ht cell-buf) 
       (draw-board cell-buf)     
