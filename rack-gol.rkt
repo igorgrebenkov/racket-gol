@@ -4,10 +4,10 @@
 (require profile)
 
 ; Constants
-(define INIT-FRAME-HEIGHT 700)
-(define INIT-FRAME-WIDTH 1000)
+(define INIT-FRAME-HEIGHT 200)
+(define INIT-FRAME-WIDTH 200)
 (define INIT-CELL-LENGTH 5)
-(define INIT-SLEEP-DELAY (/ 1 10000))
+(define INIT-SLEEP-DELAY (/ 1 100))
 (define color-black (make-object color% 0 0 0))
 (define color-dead-str "black")
 (define color-alive-str "green")
@@ -185,6 +185,7 @@
            (cond ((equal? key-char 'f1) (start-loop))))) ; start the simulation with f1
     (define/override (on-paint)                          ; on-paint override
       (begin
+        ; disabling this line looks cool
         (send board-canvas set-canvas-background color-black)
         (let ((curr-frame-height (send frame get-height))
               (curr-frame-width (send frame get-width)))
@@ -194,6 +195,7 @@
                (set! frame-height curr-frame-height)
                (set! frame-width curr-frame-width)
                    (cell-resize-table cell-ht max-x max-y)
+                   (set! cell-buf (make-hash)) ; clear the buffer
                    (draw-board cell-ht))))))
     (super-new)))
 
@@ -225,6 +227,11 @@
   (for ([(key status) (in-hash ht)])
       (cond ((equal? status ALIVE) (draw-square key color-alive-str))
             ((equal? status DEAD) (draw-square key color-dead-str)))))
+
+; Draws the cells in ht on the board
+(define (clear-board ht)
+  (for ([(key status) (in-hash ht)])
+      (draw-square key color-dead-str)))
 
 
 (send frame show #t)
