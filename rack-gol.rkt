@@ -105,7 +105,6 @@
         (let ((neighbor-value (hash-ref ht neighbor-key)))
           (set! alive-count (+ alive-count neighbor-value))))
       (cell-next-gen key value alive-count ht-buf)
-      (printf "~a \n" alive-count)
       (set! alive-count 0)))))
 
 ; Updates the state of a cell based on its neighbors
@@ -124,7 +123,11 @@
       (let ((value2 (hash-ref ht2 key)))
         (cond ((not (equal? value1 value2))
                (hash-set! result-ht key value2)))))
-    result-ht))                                                         
+    result-ht))
+
+(define (copy-ht keys ht1 ht2)
+  (for ([key keys])
+    (hash-set! ht2 key (hash-ref ht1 key))))
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% VIEW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -241,11 +244,12 @@
 ; Produces one iteration of the game
 (define (game-one-iter)
   (begin
-    (set! cell-buf (hash-copy cell-ht))        
-    (board-next-gen (cell-active cell-ht) cell-ht cell-buf) 
-    (let ((hash-changes (hash-diff cell-ht cell-buf)))
-      (draw-board hash-changes)     
-      (set! cell-ht cell-buf))))      
+    (let ((active-cells (cell-active cell-ht)))
+      (copy-ht active-cells cell-ht cell-buf)
+      (board-next-gen active-cells cell-ht cell-buf) 
+      (let ((hash-changes (hash-diff cell-ht cell-buf)))
+        (draw-board hash-changes)     
+        (copy-ht active-cells cell-buf cell-ht)))))
 
 ; Main loop
 (define (start-loop)
