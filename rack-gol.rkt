@@ -6,8 +6,8 @@
 ; Constants
 (define INIT-FRAME-HEIGHT 580)
 (define INIT-FRAME-WIDTH 600)
-(define INIT-CELL-LENGTH 5)
-(define INIT-SLEEP-DELAY (/ 1 20))
+(define INIT-CELL-LENGTH 4)
+(define INIT-SLEEP-DELAY (/ 1 100))
 (define ALIVE 1)
 (define DEAD 0)
 (define color-background (make-object color% 0 0 0))
@@ -32,17 +32,23 @@
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-; Copies the keys in a list (and their value) from ht1 to ht2
-(define (copy-ht keys ht1 ht2)
+; Initializes the cell hash tables
+;
+; Initially, cell-ht only contains alive cells selected by the user.
+; The keys list provided to the function holds the keys of all alive cells
+; and their neighbors. Hence, if any of those neighbors are dead,
+; they won't be in cell-ht yet, and so we add them.
+;
+; Otherwise, if cell-ht does contain an element with that key, it
+; must be a live cell, and so we copy it to cell-buf. This has to
+; be done so that cells that don't change state won't be lost when
+; assigning cell-buf back to cell-ht at the end of each generation.
+(define (init-ht keys ht1 ht2)
   (for ([key keys])
-    (hash-set! ht2 key (hash-ref ht1 key))))
-
-; Populates the hash table with dead cells
-(define (cell-init-table ht max-x max-y)
-  (for ([i (in-range 0 (add1 max-x))])
-    (for ([j (in-range 0 (add1 max-y))])
-      (let ((key (list i j)))
-        (hash-set! ht key DEAD)))))
+    (cond ((hash-has-key? ht1 key)
+           (hash-set! ht2 key (hash-ref ht1 key)))
+          (else
+           (hash-set! ht1 key DEAD)))))
 
 ; Generates a list of the Moore neighborhood of a cell
 (define (cell-neighbors-moore key)
@@ -65,7 +71,8 @@
           bottom
           bottom-right)))
 
-; Get a list of all keys for all alive cells and their neighbors
+;!!!!!
+; Get a list of keys for all alive cells and their neighbors
 (define (cell-active ht)
   (for*/list ([(key value) (in-hash ht)]
              [i (cell-neighbors-moore key)]
@@ -83,14 +90,14 @@
                   (hash-set! ht-buf key ALIVE))))))
 
 ; Calculates the next generation of the board
-(define (board-next-gen active-cells ht ht-buf)
+(define (board-next-gen ht ht-buf)
   (let ((alive-count 0))
-  (for ([key active-cells])
-    (let ((value (hash-ref ht key))
-          (neighbors (cell-neighbors-moore key)))
+  (for ([(key value) (in-hash ht)])
+    (let ((neighbors (cell-neighbors-moore key)))
       (for ([neighbor-key neighbors])
-        (let ((neighbor-value (hash-ref ht neighbor-key)))
-          (set! alive-count (+ alive-count neighbor-value))))
+        (cond ((hash-has-key? ht neighbor-key)
+               (let ((neighbor-value (hash-ref ht neighbor-key)))
+                 (set! alive-count (+ alive-count neighbor-value))))))
       (cell-next-gen key value alive-count ht-buf)
       (set! alive-count 0)))))
 
@@ -148,13 +155,17 @@
 
 ; Toggles a cell's status and draws it on the canvas (used for mouse actions)
 (define (cell-toggle-status ht key)
-  (let ((status (hash-ref ht key)))
-    (cond ((equal? status ALIVE)
-           (hash-set! ht key DEAD)
-           (draw-square key color-dead))
-          ((equal? status DEAD)
-           (hash-set! ht key ALIVE)
-           (draw-square key color-alive)))))
+  (cond ((hash-has-key? ht key)
+         (let ((status (hash-ref ht key)))
+           (cond ((equal? status ALIVE)
+                  (hash-set! ht key DEAD)
+                  (draw-square key color-dead))
+                 ((equal? status DEAD)
+                  (hash-set! ht key ALIVE)
+                  (draw-square key color-alive)))))
+        (else
+         (hash-set! ht key ALIVE)
+         (draw-square key color-alive))))
 
 ; Custom canvas used for the gameboard
 (define game-canvas%
@@ -233,25 +244,24 @@
 (send frame show #t)
 (sleep/yield 0)
 (send board-canvas refresh)
-(cell-init-table cell-ht max-x max-y)                   
+;(cell-init-table cell-ht max-x max-y)                   
 (set! sim-started 'true)
-
-; Produces one iteration of the game
-(define (game-one-iter)
-  (begin
-    (let ((active-cells (remove-duplicates (cell-active cell-ht))))
-      (copy-ht active-cells cell-ht cell-buf)
-      (board-next-gen active-cells cell-ht cell-buf) 
-      (draw-board cell-buf)     
-      (copy-ht active-cells cell-buf cell-ht)
-      (set! cell-buf (make-hash)))))
-
+     
 ; Main loop
 (define (start-loop)
   (begin
     (for ([i (in-range 0 +inf.0)])
       (game-one-iter)
       (sleep/yield sleep-delay))))
+
+; Produces one iteration of the game
+(define (game-one-iter)
+  (begin
+    (init-ht (remove-duplicates (cell-active cell-ht)) cell-ht cell-buf)
+    (board-next-gen cell-ht cell-buf)
+    (draw-board cell-buf)
+    (set! cell-ht cell-buf)
+    (set! cell-buf (make-hash))))
 
 
 
