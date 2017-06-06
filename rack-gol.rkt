@@ -4,8 +4,8 @@
 (require profile)
 
 ; Constants
-(define INIT-FRAME-HEIGHT 580)
-(define INIT-FRAME-WIDTH 600)
+(define INIT-FRAME-HEIGHT 800)
+(define INIT-FRAME-WIDTH 800)
 (define INIT-CELL-LENGTH 4)
 (define INIT-SLEEP-DELAY (/ 1 100))
 (define ALIVE 1)
@@ -71,12 +71,12 @@
           bottom
           bottom-right)))
 
-;!!!!!
 ; Get a list of keys for all alive cells and their neighbors
 (define (cell-active ht)
   (for*/list ([(key value) (in-hash ht)]
-             [i (cell-neighbors-moore key)]
-             #:when (equal? value ALIVE))
+              #:when (equal? value ALIVE)
+              [i (cell-neighbors-moore key)])
+             
     key i))
 
 ; Updates the state of a cell based on its neighbors
