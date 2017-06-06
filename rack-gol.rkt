@@ -6,8 +6,8 @@
 ; Constants
 (define INIT-FRAME-HEIGHT 580)
 (define INIT-FRAME-WIDTH 600)
-(define INIT-CELL-LENGTH 4)
-(define INIT-SLEEP-DELAY (/ 1 1000))
+(define INIT-CELL-LENGTH 5)
+(define INIT-SLEEP-DELAY (/ 1 100))
 (define ALIVE 1)
 (define DEAD 0)
 (define CONWAY-ALIVE-UPPER 3)
@@ -220,7 +220,6 @@
         (y (cadr key)))
   (begin
     (send dc set-brush (make-object brush% color cell-inner-style))
-    (send dc set-pen (make-object pen% color-dead 1 cell-border-style))
     (send dc draw-rectangle
           (* x cell-length)
           (* y cell-length)
@@ -237,16 +236,17 @@
 (sleep/yield 0)
 (send board-canvas refresh)
 (send board-canvas focus)
+(send dc set-pen (make-object pen% color-dead 1 cell-border-style))
 
 ; Produces one iteration of the game
 (define (game-one-iter)
   (begin
     (init-ht (remove-duplicates (cell-active cell-ht)) cell-ht cell-buf)
     (board-next-gen cell-ht cell-buf)
-    (draw-board (hash-diff cell-ht cell-buf))
+    (draw-board (hash-diff cell-ht cell-buf)))
     (set! cell-ht cell-buf)
-    (set! cell-buf (make-hash))))
-     
+    (set! cell-buf (make-hash)))
+   
 ; Main loop
 (define (start-loop)
   (begin
