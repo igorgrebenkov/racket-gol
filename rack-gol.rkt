@@ -7,12 +7,16 @@
 (define INIT-FRAME-HEIGHT 580)
 (define INIT-FRAME-WIDTH 600)
 (define INIT-CELL-LENGTH 4)
-(define INIT-SLEEP-DELAY 0)
+(define INIT-SLEEP-DELAY (/ 1 1000))
 (define ALIVE 1)
 (define DEAD 0)
+(define CONWAY-ALIVE-UPPER 3)
+(define CONWAY-ALIVE-LOWER 2)
+(define CONWAY-DEAD-THRESH 3)
+
 (define color-background (make-object color% 0 0 0))
 (define color-dead "black")
-(define color-alive "lime")
+(define color-alive "green")
 (define cell-inner-style 'solid)
 (define cell-border-style 'transparent)
 
@@ -25,11 +29,23 @@
   (exact-round (/ frame-width cell-length)))
 (define max-y
   (exact-round (/ frame-height cell-length)))
+
 (define cell-keys '())
 (define cell-ht (make-hash))
 (define cell-buf (make-hash))
+(define alive-upper-lim CONWAY-ALIVE-UPPER)
+(define alive-lower-lim CONWAY-ALIVE-LOWER)
+(define dead-thresh CONWAY-DEAD-THRESH)
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+; Returns a hash table of elements in ht2 with different
+; values for elements of the same key in ht1
+(define (hash-diff ht1 ht2)
+  (let ((result (make-hash)))
+    (for/hash ([(key value) (in-hash ht2)]
+               #:when (not (equal? value (hash-ref ht1 key))))
+      (values key value))))
 
 ; Initializes the cell hash tables
 ;
@@ -81,11 +97,12 @@
 ; Updates the state of a cell based on its neighbors
 (define (cell-next-gen key status num-alive ht-buf)
     (cond ((equal? status ALIVE)
-           (cond ((or (< num-alive 2) (> num-alive 3))
+           (cond ((or (< num-alive alive-lower-lim)
+                      (> num-alive alive-upper-lim))
                   (hash-set! ht-buf key DEAD)))) 
           (else
            (equal? status DEAD)
-           (cond ((equal? num-alive 3)
+           (cond ((equal? num-alive dead-thresh)
                   (hash-set! ht-buf key ALIVE))))))
 
 ; Calculates the next generation of the board
@@ -99,6 +116,13 @@
                  (set! alive-count (+ alive-count neighbor-value))))))
       (cell-next-gen key value alive-count ht-buf)
       (set! alive-count 0)))))
+
+(define (cell-seed ht)
+  (for ([i (in-range 0 max-x)])
+    (for ([j (in-range 0 max-y)])
+    (cond ((equal? (random 12) 0)
+           (hash-set! ht (list i j) ALIVE))))
+  (draw-board ht)))
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% VIEW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -149,7 +173,7 @@
                 (send event get-y)
                 'toggle-life))
             ((and (send event get-left-down)  ; left click + drag
-                 (send event dragging?))
+                  (send event dragging?))
              (mouse-click-action
               (send event get-x)
               (send event get-y)
@@ -163,8 +187,9 @@
             (else #f)))
     (define/override (on-char event)                     ; Keyboard events
       (let ((key-char (send event get-key-code)))
-           (cond ((equal? key-char 'f1) (start-loop))))) ; start the simulation with f1
-    (define/override (on-paint)                          ; on-paint override
+           (cond ((equal? key-char 'f1) (begin (start-loop) (display 'test)))
+                 ((equal? key-char 'f2)(cell-seed cell-ht))))) 
+    (define/override (on-paint)                         
       (begin
         ; disabling this line looks cool
         (send board-canvas set-canvas-background color-background)
@@ -184,8 +209,8 @@
                    [height frame-height]))
 
 (define board-canvas (new game-canvas%	 
-                    [parent frame]	 
-                    [style '()]))
+                          [parent frame]	 
+                          [style '()]))
 
 (define dc (send board-canvas get-dc))
 
@@ -210,7 +235,17 @@
 ; Initialization
 (send frame show #t)
 (sleep/yield 0)
-(send board-canvas refresh)                 
+(send board-canvas refresh)
+(send board-canvas focus)
+
+; Produces one iteration of the game
+(define (game-one-iter)
+  (begin
+    (init-ht (remove-duplicates (cell-active cell-ht)) cell-ht cell-buf)
+    (board-next-gen cell-ht cell-buf)
+    (draw-board (hash-diff cell-ht cell-buf))
+    (set! cell-ht cell-buf)
+    (set! cell-buf (make-hash))))
      
 ; Main loop
 (define (start-loop)
@@ -219,14 +254,6 @@
       (game-one-iter)
       (sleep/yield sleep-delay))))
 
-; Produces one iteration of the game
-(define (game-one-iter)
-  (begin
-    (init-ht (remove-duplicates (cell-active cell-ht)) cell-ht cell-buf)
-    (board-next-gen cell-ht cell-buf)
-    (draw-board cell-buf)
-    (set! cell-ht cell-buf)
-    (set! cell-buf (make-hash))))
 
 
 
