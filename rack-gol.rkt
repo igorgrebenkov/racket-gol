@@ -19,6 +19,8 @@
 (define color-alive "green")
 (define cell-inner-style 'solid)
 (define cell-border-style 'transparent)
+(define cell-alive-brush (make-object brush% color-alive cell-inner-style))
+(define cell-dead-brush (make-object brush% color-dead cell-inner-style))
 
 ; State variables
 (define cell-length INIT-CELL-LENGTH)  
@@ -142,9 +144,9 @@
   (begin
     (hash-set! ht key status)
     (cond ((equal? status ALIVE)
-           (draw-square key color-alive))
+           (draw-square key cell-alive-brush))
           ((equal? status DEAD)
-           (draw-square key color-dead)))))
+           (draw-square key cell-dead-brush)))))
 
 ; Toggles a cell's status and draws it on the canvas (used for mouse actions)
 (define (cell-toggle-status ht key)
@@ -152,13 +154,13 @@
          (let ((status (hash-ref ht key)))
            (cond ((equal? status ALIVE)
                   (hash-set! ht key DEAD)
-                  (draw-square key color-dead))
+                  (draw-square key cell-dead-brush))
                  ((equal? status DEAD)
                   (hash-set! ht key ALIVE)
-                  (draw-square key color-alive)))))
+                  (draw-square key cell-alive-brush)))))
         (else
          (hash-set! ht key ALIVE)
-         (draw-square key color-alive))))
+         (draw-square key cell-alive-brush))))
 
 ; Custom canvas used for the gameboard
 (define game-canvas%
@@ -214,22 +216,24 @@
 
 (define dc (send board-canvas get-dc))
 
+
+
 ; Draws a single square on the canvas at '(x,y)
-(define (draw-square key color)
+(define (draw-square key brush)
   (let ((x (car key))
         (y (cadr key)))
-  (begin
-    (send dc set-brush (make-object brush% color cell-inner-style))
+    (send dc set-brush brush)
     (send dc draw-rectangle
           (* x cell-length)
           (* y cell-length)
-          cell-length cell-length))))
+          cell-length cell-length)))
+
 
 ; Draws the cells in ht on the board
 (define (draw-board ht)
   (for ([(key status) (in-hash ht)])
-      (cond ((equal? status ALIVE) (draw-square key color-alive))
-            ((equal? status DEAD) (draw-square key color-dead)))))
+      (cond ((equal? status ALIVE) (draw-square key cell-alive-brush))
+            ((equal? status DEAD) (draw-square key cell-dead-brush)))))
 
 ; Initialization
 (send frame show #t)
