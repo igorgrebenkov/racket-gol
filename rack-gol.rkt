@@ -4,10 +4,10 @@
 (require profile)
 
 ; Constants
-(define INIT-FRAME-HEIGHT 800)
-(define INIT-FRAME-WIDTH 800)
+(define INIT-FRAME-HEIGHT 580)
+(define INIT-FRAME-WIDTH 600)
 (define INIT-CELL-LENGTH 4)
-(define INIT-SLEEP-DELAY (/ 1 100))
+(define INIT-SLEEP-DELAY 0)
 (define ALIVE 1)
 (define DEAD 0)
 (define color-background (make-object color% 0 0 0))
@@ -15,7 +15,6 @@
 (define color-alive "lime")
 (define cell-inner-style 'solid)
 (define cell-border-style 'transparent)
-(define sim-started 'true)
 
 ; State variables
 (define cell-length INIT-CELL-LENGTH)  
@@ -103,36 +102,6 @@
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% VIEW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-; Increases/decreases the size of the table
-; Used to dynamically adjust the table size when resizing the frame
-(define (cell-resize-table ht curr-x curr-y)
-  (let ((new-max-x (exact-round (/ frame-width cell-length)))
-        (new-max-y (exact-round (/ frame-height cell-length))))
-    (cond ((and (> new-max-x curr-x) (> new-max-y curr-y)) ; height AND width increased
-           (for ([i (in-range curr-x (add1 new-max-x))])
-             (for ([j (in-range 0 (add1 new-max-y))])
-               (hash-set! ht (list i j) DEAD)))
-           (for ([i (in-range 0 (add1 new-max-x))])
-             (for ([j (in-range curr-y (add1 new-max-y))]) 
-               (hash-set! ht (list i j) DEAD))))
-          ((> new-max-x curr-x)                            ; width increased only
-           (for ([i (in-range curr-x (add1 new-max-x))])
-             (for ([j (in-range 0 (add1 curr-y))])
-               (hash-set! ht (list i j) DEAD))))
-          ((> new-max-y curr-y)                            ; height increased only
-           (for ([i (in-range 0 (add1 curr-x))])
-             (for ([j (in-range curr-y (add1 new-max-y))])
-               (hash-set! ht (list i j) DEAD))))
-          ((or (< new-max-x curr-x) (< new-max-y curr-y))  ; height OR width decreased
-           (display 'shit)
-           (let ((new-hash (make-hash)))
-           (for ([i (in-range 0 (add1 new-max-x))])
-             (for ([j (in-range 0 (add1 new-max-y))])
-               (hash-set! new-hash (list i j) (hash-ref cell-ht (list i j)))))
-             (set! cell-ht (hash-copy new-hash)))))
-    (set! max-x new-max-x)
-    (set! max-y new-max-y)))
-
 ; Action associated with mouse buttons for making cells dead/alive
 (define (mouse-click-action x y action)
   (let ((cell-x (exact-floor (/ x cell-length)))
@@ -201,14 +170,12 @@
         (send board-canvas set-canvas-background color-background)
         (let ((curr-frame-height (send frame get-height))
               (curr-frame-width (send frame get-width)))
-        (cond ((and (equal? sim-started 'true)
-               (not (and (equal? curr-frame-height INIT-FRAME-HEIGHT)  ; handles window resizing
-                         (equal? curr-frame-width INIT-FRAME-WIDTH))))
+        (cond ((not (and (equal? curr-frame-height INIT-FRAME-HEIGHT)  ; handles window resizing
+                         (equal? curr-frame-width INIT-FRAME-WIDTH)))
                (set! frame-height curr-frame-height)
                (set! frame-width curr-frame-width)
-                   (cell-resize-table cell-ht max-x max-y)
-                   (set! cell-buf (make-hash)) ; clear the buffer
-                   (draw-board cell-ht))))))
+               (set! max-x (exact-round (/ frame-width cell-length)))
+               (set! max-y (exact-round (/ frame-height cell-length))))))))
     (super-new)))
 
 (define frame (new frame%
@@ -243,9 +210,7 @@
 ; Initialization
 (send frame show #t)
 (sleep/yield 0)
-(send board-canvas refresh)
-;(cell-init-table cell-ht max-x max-y)                   
-(set! sim-started 'true)
+(send board-canvas refresh)                 
      
 ; Main loop
 (define (start-loop)
