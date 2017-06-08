@@ -4,10 +4,10 @@
 (require profile)
 
 ; Constants
-(define INIT-FRAME-HEIGHT 580)
-(define INIT-FRAME-WIDTH 600)
-(define INIT-CELL-LENGTH 5)
-(define INIT-SLEEP-DELAY (/ 1 100))
+(define INIT-FRAME-HEIGHT 680)
+(define INIT-FRAME-WIDTH 900)
+(define INIT-CELL-LENGTH 4)
+(define INIT-SLEEP-DELAY (/ 1 10000))
 (define ALIVE 1)
 (define DEAD 0)
 (define CONWAY-ALIVE-UPPER 3)
@@ -35,6 +35,7 @@
 (define cell-keys '())
 (define cell-ht (make-hash))
 (define cell-buf (make-hash))
+(define cell-neighbor (make-hash))
 (define alive-upper-lim CONWAY-ALIVE-UPPER)
 (define alive-lower-lim CONWAY-ALIVE-LOWER)
 (define dead-thresh CONWAY-DEAD-THRESH)
@@ -216,8 +217,6 @@
 
 (define dc (send board-canvas get-dc))
 
-
-
 ; Draws a single square on the canvas at '(x,y)
 (define (draw-square key brush)
   (let ((x (car key))
@@ -227,7 +226,6 @@
           (* x cell-length)
           (* y cell-length)
           cell-length cell-length)))
-
 
 ; Draws the cells in ht on the board
 (define (draw-board ht)
@@ -241,15 +239,17 @@
 (send board-canvas refresh)
 (send board-canvas focus)
 (send dc set-pen (make-object pen% color-dead 1 cell-border-style))
-
+(collect-garbage)
+                                 
 ; Produces one iteration of the game
 (define (game-one-iter)
   (begin
     (init-ht (remove-duplicates (cell-active cell-ht)) cell-ht cell-buf)
     (board-next-gen cell-ht cell-buf)
-    (draw-board (hash-diff cell-ht cell-buf)))
-    (set! cell-ht cell-buf)
-    (set! cell-buf (make-hash)))
+    (draw-board (hash-diff cell-ht cell-buf))
+  (set! cell-ht cell-buf)
+  (set! cell-buf (make-hash))
+  (collect-garbage 'incremental)))
    
 ; Main loop
 (define (start-loop)
