@@ -64,7 +64,8 @@
 (define (init-ht keys ht1 ht2)
   (for ([key keys])
     (cond ((hash-has-key? ht1 key)
-           (hash-set! ht2 key (hash-ref ht1 key)))
+           (hash-set! ht2 key (hash-ref ht1 key))
+           )
           (else
            (hash-set! ht1 key DEAD)))))
 
@@ -80,7 +81,8 @@
          (bottom-left (list (modulo (- x 1) max-x) (modulo (+ y 1) max-y)))
          (bottom (list (modulo x max-x) (modulo (+ y 1) max-y)))
          (bottom-right (list (modulo (+ x 1) max-x) (modulo (+ y 1) max-y))))
-    (list top-left
+    (list 
+          top-left
           top
           top-right
           left
@@ -90,12 +92,36 @@
           bottom-right)))
 
 ; Get a list of keys for all alive cells and their neighbors
-(define (cell-active ht)
+(define (cell-active4 ht)
   (for*/list ([(key value) (in-hash ht)]
               #:when (equal? value ALIVE)
               [i (cell-neighbors-moore key)])
              
-    key i))
+    i))
+
+
+(define (cell-active ht)
+  (let ((result '()))
+    (for ([(key value) (in-hash ht)]
+           #:when (equal? value ALIVE))
+      (cond ((hash-has-key? cell-neighbor key)
+             (set! result (append (list key) (hash-ref cell-neighbor key) result)))
+            (else
+             (let ((neighbors (cell-neighbors-moore key)))
+               (hash-set! cell-neighbor key neighbors)
+               (set! result (append (list key) neighbors result))))))
+            result))
+
+
+(define (cell-active2 ht)
+  (for/list ([(key value) (in-hash ht)]
+             #:when (equal? value ALIVE))
+    (cond ((hash-has-key? cell-neighbor key)
+           key (hash-ref cell-neighbor key))
+          (else
+           (
+            (for [(i (cell-neighbors-moore key))]
+              key i))))))
 
 ; Updates the state of a cell based on its neighbors
 (define (cell-next-gen key status num-alive ht-buf)
@@ -112,13 +138,17 @@
 (define (board-next-gen ht ht-buf)
   (let ((alive-count 0))
   (for ([(key value) (in-hash ht)])
-    (let ((neighbors (cell-neighbors-moore key)))
+    (let ((neighbors (
+                      (cond ((hash-has-key? cell-neighbor key)
+                             (hash-ref cell-neighbor key))
+                            (else
+                             (cell-neighbors-moore key))))))
       (for ([neighbor-key neighbors])
         (cond ((hash-has-key? ht neighbor-key)
                (let ((neighbor-value (hash-ref ht neighbor-key)))
-                 (set! alive-count (+ alive-count neighbor-value))))))
+                 (set! alive-count (+ alive-count neighbor-value)))))))
       (cell-next-gen key value alive-count ht-buf)
-      (set! alive-count 0)))))
+      (set! alive-count 0))))
 
 (define (cell-seed ht)
   (for ([i (in-range 0 max-x)])
