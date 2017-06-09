@@ -4,9 +4,9 @@
 (require profile)
 
 ; Constants
-(define INIT-FRAME-HEIGHT 680)
-(define INIT-FRAME-WIDTH 900)
-(define INIT-CELL-LENGTH 4)
+(define INIT-FRAME-HEIGHT 580)
+(define INIT-FRAME-WIDTH 600)
+(define INIT-CELL-LENGTH 1)
 (define INIT-SLEEP-DELAY 0)
 (define ALIVE 1)
 (define DEAD 0)
@@ -60,11 +60,17 @@
 ; must be a live cell, and so we copy it to cell-buf. This has to
 ; be done so that cells that don't change state won't be lost when
 ; assigning cell-buf back to cell-ht at the end of each generation.
-(define (init-ht keys ht1 ht2)
+(define (init-ht2 keys ht1 ht2)
   (for ([key keys])
     (cond ((hash-has-key? ht1 key)
-           (hash-set! ht2 key (hash-ref ht1 key))
-           )
+           (hash-set! ht2 key (hash-ref ht1 key)))
+          (else
+           (hash-set! ht1 key DEAD)))))
+
+(define (init-ht ht0 ht1 ht2)
+  (for ([(key value) (in-hash ht0)])
+    (cond ((hash-has-key? ht1 key)
+           (hash-set! ht2 key (hash-ref ht1 key)))
           (else
            (hash-set! ht1 key DEAD)))))
 
@@ -80,8 +86,7 @@
          (bottom-left (list (modulo (- x 1) max-x) (modulo (+ y 1) max-y)))
          (bottom (list (modulo x max-x) (modulo (+ y 1) max-y)))
          (bottom-right (list (modulo (+ x 1) max-x) (modulo (+ y 1) max-y))))
-    (list 
-          top-left
+    (list top-left
           top
           top-right
           left
@@ -90,37 +95,33 @@
           bottom
           bottom-right)))
 
-; Get a list of keys for all alive cells and their neighbors
-(define (cell-active4 ht)
-  (for*/list ([(key value) (in-hash ht)]
-              #:when (equal? value ALIVE)
-              [i (cell-neighbors-moore key)])
-             
-    i))
-
-
-(define (cell-active ht)
+; Get a list of keys for neighbors of alive cells
+(define (cell-active2 ht)
   (let ((result '()))
     (for ([(key value) (in-hash ht)]
            #:when (equal? value ALIVE))
       (cond ((hash-has-key? cell-neighbor key)
-             (set! result (append (list key) (hash-ref cell-neighbor key) result)))
+             (set! result (append (hash-ref cell-neighbor key) result)))
             (else
              (let ((neighbors (cell-neighbors-moore key)))
                (hash-set! cell-neighbor key neighbors)
-               (set! result (append (list key) neighbors result))))))
+               (set! result (append neighbors result))))))
             result))
 
-
-(define (cell-active2 ht)
-  (for/list ([(key value) (in-hash ht)]
-             #:when (equal? value ALIVE))
-    (cond ((hash-has-key? cell-neighbor key)
-           key (hash-ref cell-neighbor key))
-          (else
-           (
-            (for [(i (cell-neighbors-moore key))]
-              key i))))))
+(define (cell-active ht)
+  (let ((result (make-hash)))
+    (for ([(key value) (in-hash ht)]
+           #:when (equal? value ALIVE))
+      (cond ((hash-has-key? cell-neighbor key)
+             (hash-set! result key value)
+             (for ([i (hash-ref cell-neighbor key)])
+               (hash-set! result i DEAD)))
+            (else
+             (let ((neighbors (cell-neighbors-moore key)))
+               (hash-set! cell-neighbor key neighbors)
+               (for ([i neighbors])
+                 (hash-set! result i DEAD))))))
+            result))
 
 ; Updates the state of a cell based on its neighbors
 (define (cell-next-gen key status num-alive ht-buf)
@@ -148,12 +149,17 @@
       (cell-next-gen key value alive-count ht-buf)
       (set! alive-count 0)))))
 
-(define (cell-seed ht)
+(define (cell-seed2 ht)
   (for ([i (in-range 0 max-x)])
     (for ([j (in-range 0 max-y)])
     (cond ((equal? (random 12) 0)
            (hash-set! ht (list i j) ALIVE))))
   (draw-board ht)))
+
+(define (cell-seed ht)
+  (for ([i (in-range 0 max-x)])
+    (hash-set! ht (list i 80) ALIVE))
+  (draw-board ht))
 
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% VIEW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -270,22 +276,21 @@
 (collect-garbage)
 
 (define (cell-remove-dead ht)
-  (let ((result (make-hash)))
-    (for ([(key value) (in-hash ht)])
-      (cond ((equal? value ALIVE)
-             (hash-set! result key value))))
-    result))
+  (for/hash ([(key value) (in-hash ht)]
+             #:when (equal? value ALIVE))
+    (values key value)))
+   
+
 
 ; Produces one iteration of the game
 (define (game-one-iter)
   (begin
-    (init-ht (remove-duplicates (cell-active cell-ht)) cell-ht cell-buf)
+    (init-ht (cell-active cell-ht) cell-ht cell-buf)
     (board-next-gen cell-ht cell-buf)
-    ;(draw-board (hash-diff cell-ht cell-buf))
-    (set! cell-ht (cell-remove-dead cell-buf))
+    (draw-board (hash-diff cell-ht cell-buf))
+    (set! cell-ht (hash-copy (cell-remove-dead cell-buf)))
     (set! cell-buf (make-hash))
-    (collect-garbage 'incremental)
-    ))
+    (collect-garbage 'incremental)))
    
 ; Main loop
 (define (start-loop)
