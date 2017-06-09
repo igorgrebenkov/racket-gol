@@ -138,17 +138,16 @@
 (define (board-next-gen ht ht-buf)
   (let ((alive-count 0))
   (for ([(key value) (in-hash ht)])
-    (let ((neighbors (
-                      (cond ((hash-has-key? cell-neighbor key)
-                             (hash-ref cell-neighbor key))
-                            (else
-                             (cell-neighbors-moore key))))))
+    (let ((neighbors (cond ((hash-has-key? cell-neighbor key)
+                            (hash-ref cell-neighbor key))
+                           (else
+                            (cell-neighbors-moore key)))))
       (for ([neighbor-key neighbors])
         (cond ((hash-has-key? ht neighbor-key)
                (let ((neighbor-value (hash-ref ht neighbor-key)))
-                 (set! alive-count (+ alive-count neighbor-value)))))))
+                 (set! alive-count (+ alive-count neighbor-value))))))
       (cell-next-gen key value alive-count ht-buf)
-      (set! alive-count 0))))
+      (set! alive-count 0)))))
 
 (define (cell-seed ht)
   (for ([i (in-range 0 max-x)])
