@@ -7,7 +7,7 @@
 (define INIT-FRAME-HEIGHT 680)
 (define INIT-FRAME-WIDTH 900)
 (define INIT-CELL-LENGTH 4)
-(define INIT-SLEEP-DELAY (/ 1 10000))
+(define INIT-SLEEP-DELAY 0)
 (define ALIVE 1)
 (define DEAD 0)
 (define CONWAY-ALIVE-UPPER 3)
@@ -45,10 +45,9 @@
 ; Returns a hash table of elements in ht2 with different
 ; values for elements of the same key in ht1
 (define (hash-diff ht1 ht2)
-  (let ((result (make-hash)))
-    (for/hash ([(key value) (in-hash ht2)]
-               #:when (not (equal? value (hash-ref ht1 key))))
-      (values key value))))
+  (for/hash ([(key value) (in-hash ht2)]
+             #:when (not (equal? value (hash-ref ht1 key))))
+    (values key value)))
 
 ; Initializes the cell hash tables
 ;
@@ -269,16 +268,24 @@
 (send board-canvas focus)
 (send dc set-pen (make-object pen% color-dead 1 cell-border-style))
 (collect-garbage)
-                                 
+
+(define (cell-remove-dead ht)
+  (let ((result (make-hash)))
+    (for ([(key value) (in-hash ht)])
+      (cond ((equal? value ALIVE)
+             (hash-set! result key value))))
+    result))
+
 ; Produces one iteration of the game
 (define (game-one-iter)
   (begin
     (init-ht (remove-duplicates (cell-active cell-ht)) cell-ht cell-buf)
     (board-next-gen cell-ht cell-buf)
-    (draw-board (hash-diff cell-ht cell-buf))
-  (set! cell-ht cell-buf)
-  (set! cell-buf (make-hash))
-  (collect-garbage 'incremental)))
+    ;(draw-board (hash-diff cell-ht cell-buf))
+    (set! cell-ht (cell-remove-dead cell-buf))
+    (set! cell-buf (make-hash))
+    (collect-garbage 'incremental)
+    ))
    
 ; Main loop
 (define (start-loop)
