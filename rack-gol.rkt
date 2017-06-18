@@ -13,7 +13,6 @@
 (define CONWAY-ALIVE-UPPER 3)
 (define CONWAY-ALIVE-LOWER 2)
 (define CONWAY-DEAD-THRESH 3)
-
 (define color-background (make-object color% 0 0 0))
 (define color-dead "black")
 (define color-alive "green")
@@ -32,7 +31,6 @@
 (define max-y
   (exact-round (/ frame-height cell-length)))
 
-(define cell-keys '())
 (define cell-ht (make-hash))
 (define cell-buf (make-hash))
 (define cell-neighbor (make-hash))
@@ -40,19 +38,10 @@
 (define alive-lower-lim CONWAY-ALIVE-LOWER)
 (define dead-thresh CONWAY-DEAD-THRESH)
 
-; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% STATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-; Returns a hash table of elements in ht2 with different
-; values for elements of the same key in ht1
-(define (hash-diff ht1 ht2)
-  (for/hash ([(key value) (in-hash ht2)]
-             #:when (not (equal? value (hash-ref ht1 key))))
-    (values key value)))
-
 ; Initializes the cell hash tables
 ;
 ; Initially, cell-ht only contains alive cells selected by the user.
-; The keys list provided to the function holds the keys of all alive cells
+; The hash table ht0 provided to holds the keys of all alive cells
 ; and their neighbors. Hence, if any of those neighbors are dead,
 ; they won't be in cell-ht yet, and so we add them.
 ;
@@ -60,13 +49,6 @@
 ; must be a live cell, and so we copy it to cell-buf. This has to
 ; be done so that cells that don't change state won't be lost when
 ; assigning cell-buf back to cell-ht at the end of each generation.
-(define (init-ht2 keys ht1 ht2)
-  (for ([key keys])
-    (cond ((hash-has-key? ht1 key)
-           (hash-set! ht2 key (hash-ref ht1 key)))
-          (else
-           (hash-set! ht1 key DEAD)))))
-
 (define (init-ht ht0 ht1 ht2)
   (for ([(key value) (in-hash ht0)])
     (cond ((hash-has-key? ht1 key)
@@ -95,19 +77,7 @@
           bottom
           bottom-right)))
 
-; Get a list of keys for neighbors of alive cells
-(define (cell-active2 ht)
-  (let ((result '()))
-    (for ([(key value) (in-hash ht)]
-           #:when (equal? value ALIVE))
-      (cond ((hash-has-key? cell-neighbor key)
-             (set! result (append (hash-ref cell-neighbor key) result)))
-            (else
-             (let ((neighbors (cell-neighbors-moore key)))
-               (hash-set! cell-neighbor key neighbors)
-               (set! result (append neighbors result))))))
-            result))
-
+; Get a hash table of alive cells and their neighbors
 (define (cell-active ht)
   (let ((result (make-hash)))
     (for ([(key value) (in-hash ht)]
@@ -121,7 +91,7 @@
                (hash-set! cell-neighbor key neighbors)
                (for ([i neighbors])
                  (hash-set! result i DEAD))))))
-            result))
+    result))
 
 ; Updates the state of a cell based on its neighbors
 (define (cell-next-gen key status num-alive ht-buf)
@@ -134,21 +104,6 @@
            (cond ((equal? num-alive dead-thresh)
                   (hash-set! ht-buf key ALIVE))))))
 
-; Calculates the next generation of the board
-(define (board-next-gen2 ht ht-buf)
-  (let ((alive-count 0))
-  (for ([(key value) (in-hash ht)])
-    (let ((neighbors (cond ((hash-has-key? cell-neighbor key)
-                            (hash-ref cell-neighbor key))
-                           (else
-                            (cell-neighbors-moore key)))))
-      (for ([neighbor-key neighbors])
-        (cond ((hash-has-key? ht neighbor-key)
-               (let ((neighbor-value (hash-ref ht neighbor-key)))
-                 (set! alive-count (+ alive-count neighbor-value))))))
-      (cell-next-gen key value alive-count ht-buf)
-      (set! alive-count 0)))))
-
 ; Counts the number of alive cells in a cell's neighborhood
 (define (cell-neighbor-count ht key neighbors)
   (let ((alive-count 0))
@@ -158,7 +113,6 @@
                (set! alive-count (+ alive-count neighbor-value))))))
     alive-count))
 
-
 ; Calculates the next generation of the board
 (define (board-next-gen ht ht-buf)
   (for ([(key value) (in-hash ht)])
@@ -166,66 +120,46 @@
                              (hash-ref cell-neighbor key))
                             (else
                              (cell-neighbors-moore key))))
-           (alive-count (cell-neighbor-count ht key neighbors)))
-      (cell-next-gen key value alive-count ht-buf)
-      (set! alive-count 0))))
+           (alive-count (cell-neighbor-count cell-ht key neighbors)))
+      (cell-next-gen key value alive-count ht-buf))))
 
-(define (cell-seed2 ht)
+; Returns a hash table of elements in ht2 with different
+; values for elements of the same key in ht1
+(define (hash-diff ht1 ht2)
+  (for/hash ([(key value) (in-hash ht2)]
+             #:when (not (equal? value (hash-ref ht1 key))))
+    (values key value)))
+
+; Randomly seeds the board
+(define (cell-seed ht)
   (for ([i (in-range 0 max-x)])
     (for ([j (in-range 0 max-y)])
     (cond ((equal? (random 12) 0)
            (hash-set! ht (list i j) ALIVE))))
   (draw-board ht)))
 
-(define (cell-seed ht)
-  (for ([i (in-range 0 max-x)])
-    (hash-set! ht (list i 80) ALIVE))
-  (draw-board ht))
+; Gosper gun hash table
+(define gosper '#hash(((67 34) . 1) ((67 33) . 1) ((62 32) . 1)
+                      ((86 32) . 1) ((66 32) . 1) ((72 32) . 1)
+                      ((85 31) . 1) ((61 33) . 1) ((61 35) . 1)
+                      ((71 32) . 1) ((65 34) . 1) ((63 31) . 1)
+                      ((63 37) . 1) ((75 34) . 1) ((51 33) . 1)
+                      ((75 30) . 1) ((67 35) . 1) ((52 33) . 1)
+                      ((73 34) . 1) ((86 31) . 1) ((71 33) . 1)
+                      ((61 34) . 1) ((68 34) . 1) ((71 31) . 1)
+                      ((72 31) . 1) ((73 30) . 1) ((64 31) . 1)
+                      ((64 37) . 1) ((85 32) . 1) ((75 29) . 1)
+                      ((75 35) . 1) ((52 34) . 1) ((66 36) . 1)
+                      ((62 36) . 1) ((51 34) . 1) ((72 33) . 1)))
 
-(define gosper '#hash(((67 34) . 1)
-       ((67 33) . 1)
-       ((62 32) . 1)
-       ((86 32) . 1)
-       ((66 32) . 1)
-       ((72 32) . 1)
-       ((85 31) . 1)
-       ((61 33) . 1)
-       ((61 35) . 1)
-       ((71 32) . 1)
-       ((65 34) . 1)
-       ((63 31) . 1)
-       ((63 37) . 1)
-       ((75 34) . 1)
-       ((51 33) . 1)
-       ((75 30) . 1)
-       ((67 35) . 1)
-       ((52 33) . 1)
-       ((73 34) . 1)
-       ((86 31) . 1)
-       ((71 33) . 1)
-       ((61 34) . 1)
-       ((68 34) . 1)
-       ((71 31) . 1)
-       ((72 31) . 1)
-       ((73 30) . 1)
-       ((64 31) . 1)
-       ((64 37) . 1)
-       ((85 32) . 1)
-       ((75 29) . 1)
-       ((75 35) . 1)
-       ((52 34) . 1)
-       ((66 36) . 1)
-       ((62 36) . 1)
-       ((51 34) . 1)
-       ((72 33) . 1)))
-
+; Draw a gosper gun
 (define (draw-gosper)
   (begin
     (for ([(key value) (in-hash gosper)])
       (hash-set! cell-ht key value))
     (draw-board cell-ht)))
-; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% VIEW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+;%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ; Action associated with mouse buttons for making cells dead/alive
 (define (mouse-click-action x y action)
   (let ((cell-x (exact-floor (/ x cell-length)))
@@ -358,7 +292,6 @@
              #:when (equal? value ALIVE))
     (values key value)))
    
-
 
 ; Produces one iteration of the game
 (define (game-one-iter)
