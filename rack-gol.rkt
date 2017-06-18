@@ -5,9 +5,9 @@
 
 ; Constants
 (define INIT-FRAME-HEIGHT 580)
-(define INIT-FRAME-WIDTH 600)
-(define INIT-CELL-LENGTH 1)
-(define INIT-SLEEP-DELAY 0)
+(define INIT-FRAME-WIDTH 750)
+(define INIT-CELL-LENGTH 5)
+(define INIT-SLEEP-DELAY (/ 1 10))
 (define ALIVE 1)
 (define DEAD 0)
 (define CONWAY-ALIVE-UPPER 3)
@@ -135,7 +135,7 @@
                   (hash-set! ht-buf key ALIVE))))))
 
 ; Calculates the next generation of the board
-(define (board-next-gen ht ht-buf)
+(define (board-next-gen2 ht ht-buf)
   (let ((alive-count 0))
   (for ([(key value) (in-hash ht)])
     (let ((neighbors (cond ((hash-has-key? cell-neighbor key)
@@ -149,6 +149,27 @@
       (cell-next-gen key value alive-count ht-buf)
       (set! alive-count 0)))))
 
+; Counts the number of alive cells in a cell's neighborhood
+(define (cell-neighbor-count ht key neighbors)
+  (let ((alive-count 0))
+    (for ([neighbor-key neighbors])
+      (cond ((hash-has-key? ht neighbor-key)
+             (let ((neighbor-value (hash-ref ht neighbor-key)))
+               (set! alive-count (+ alive-count neighbor-value))))))
+    alive-count))
+
+
+; Calculates the next generation of the board
+(define (board-next-gen ht ht-buf)
+  (for ([(key value) (in-hash ht)])
+    (let* ((neighbors (cond ((hash-has-key? cell-neighbor key)
+                             (hash-ref cell-neighbor key))
+                            (else
+                             (cell-neighbors-moore key))))
+           (alive-count (cell-neighbor-count ht key neighbors)))
+      (cell-next-gen key value alive-count ht-buf)
+      (set! alive-count 0))))
+
 (define (cell-seed2 ht)
   (for ([i (in-range 0 max-x)])
     (for ([j (in-range 0 max-y)])
@@ -161,6 +182,48 @@
     (hash-set! ht (list i 80) ALIVE))
   (draw-board ht))
 
+(define gosper '#hash(((67 34) . 1)
+       ((67 33) . 1)
+       ((62 32) . 1)
+       ((86 32) . 1)
+       ((66 32) . 1)
+       ((72 32) . 1)
+       ((85 31) . 1)
+       ((61 33) . 1)
+       ((61 35) . 1)
+       ((71 32) . 1)
+       ((65 34) . 1)
+       ((63 31) . 1)
+       ((63 37) . 1)
+       ((75 34) . 1)
+       ((51 33) . 1)
+       ((75 30) . 1)
+       ((67 35) . 1)
+       ((52 33) . 1)
+       ((73 34) . 1)
+       ((86 31) . 1)
+       ((71 33) . 1)
+       ((61 34) . 1)
+       ((68 34) . 1)
+       ((71 31) . 1)
+       ((72 31) . 1)
+       ((73 30) . 1)
+       ((64 31) . 1)
+       ((64 37) . 1)
+       ((85 32) . 1)
+       ((75 29) . 1)
+       ((75 35) . 1)
+       ((52 34) . 1)
+       ((66 36) . 1)
+       ((62 36) . 1)
+       ((51 34) . 1)
+       ((72 33) . 1)))
+
+(define (draw-gosper)
+  (begin
+    (for ([(key value) (in-hash gosper)])
+      (hash-set! cell-ht key value))
+    (draw-board cell-ht)))
 ; %%%%%%%%%%%%%%%%%%%%%%%%%%%%%% VIEW %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ; Action associated with mouse buttons for making cells dead/alive
@@ -225,11 +288,26 @@
     (define/override (on-char event)                     ; Keyboard events
       (let ((key-char (send event get-key-code)))
            (cond ((equal? key-char 'f1) (begin (start-loop) (display 'test)))
-                 ((equal? key-char 'f2)(cell-seed cell-ht))))) 
+                 ((equal? key-char 'f2) (draw-gosper))
+                 ((equal? key-char 'f3)
+                  (send board-canvas refresh)
+                  (set! cell-length (+ cell-length 0.3))
+                  (set! max-x
+                    (exact-round (/ frame-width cell-length)))
+                  (set! max-y
+                    (exact-round (/ frame-height cell-length))))
+                 ((equal? key-char 'f4)
+                  (send board-canvas refresh)
+                  (set! cell-length (- cell-length 0.3))
+                  (set! max-x
+                    (exact-round (/ frame-width cell-length)))
+                  (set! max-y
+                    (exact-round (/ frame-height cell-length))))))) 
     (define/override (on-paint)                         
       (begin
         ; disabling this line looks cool
         (send board-canvas set-canvas-background color-background)
+        (draw-board cell-ht)
         (let ((curr-frame-height (send frame get-height))
               (curr-frame-width (send frame get-width)))
         (cond ((not (and (equal? curr-frame-height INIT-FRAME-HEIGHT)  ; handles window resizing
@@ -294,10 +372,9 @@
    
 ; Main loop
 (define (start-loop)
-  (begin
     (for ([i (in-range 0 +inf.0)])
       (game-one-iter)
-      (sleep/yield sleep-delay))))
+      (sleep/yield sleep-delay)))
 
 
 
