@@ -91,6 +91,7 @@
 (define board-canvas (new game-canvas%	 
                           [parent main-frame]	 
                           [style '()]))
+(define dc (send board-canvas get-dc))
 
 ; Top control panel
 (define control-panel-top (new horizontal-panel%
@@ -106,7 +107,7 @@
                                   [stretchable-height #f]
                                   [stretchable-width #f]))
 
-; Control panel GUI elements
+; Control panel GUI elements (top)
 (define button-start
   (new button% [parent control-panel-top]
                [label "Start"]
@@ -122,7 +123,9 @@
 
 (define button-next
   (new button% [parent control-panel-top]
-               [label "Next"]))
+               [label "Next"]
+               [callback (lambda (i e)
+                           (game-one-iter))]))
 
 (define button-clear
  (new button% [parent control-panel-top]
@@ -136,6 +139,11 @@
                                 (number->string num-generations))
                           (send board-canvas refresh))]))
 
+(define textfield-generations
+  (new text-field% [parent control-panel-top]
+                   [label "Generations"]))
+
+; Control panel GUI elements (bottom)
 (define slider-speed
   (new slider% [parent control-panel-bottom]
                [label "Speed"]
@@ -162,10 +170,6 @@
                            (set-max-y!
                             (exact-round (/ frame-height cell-length))))]))
 
-(define textfield-generations
-  (new text-field% [parent control-panel-top]
-                   [label "Generations"]))
-
 (define checkbox-border
   (new check-box% [parent control-panel-bottom]
                   [label "Cell Border"]
@@ -175,9 +179,6 @@
                                     (make-object pen% color-dead 1 cell-border-style))
                               (draw-board cell-ht))]))
 
-
-
-(define dc (send board-canvas get-dc))
 
 ; Draws a single square on the canvas at '(x,y)
 (define (draw-square key brush)
