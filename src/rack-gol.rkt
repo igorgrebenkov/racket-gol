@@ -68,7 +68,7 @@
             (else #f)))
     (define/override (on-char event)                     ; Keyboard events
       (let ((key-char (send event get-key-code)))
-           (cond ((equal? key-char 'f1) (begin (start-loop)))
+           (cond ((equal? key-char 'f1) (begin (game-loop)))
                  ((equal? key-char 'f2)
                   (draw-gosper)
                   )
@@ -102,36 +102,43 @@
     (super-new)))
 
 
-
+; The main-frame holds the board-canvas and control panels
 (define main-frame (new frame% [label "Game of Life"]
                                [height frame-height]
                                [width frame-width]))
 
+; Represents the game board
 (define board-canvas (new game-canvas%	 
                           [parent main-frame]	 
-                          [style '()]
-                          ))
+                          [style '()]))
 
+; Top control panel
 (define control-panel-top (new horizontal-panel%
                                [parent main-frame]
                                [alignment '(center center)]
                                [stretchable-height #f]
                                [stretchable-width #f]))
 
+; Bottom control panel
 (define control-panel-bottom (new horizontal-panel%
                                   [parent main-frame]
                                   [alignment '(center center)]
                                   [stretchable-height #f]
                                   [stretchable-width #f]))
 
+; Control panel GUI elements
 (define button-start
   (new button% [parent control-panel-top]
                [label "Start"]
-               [callback (lambda (i e) (start-loop))]))
+               [callback (lambda (i e)
+                           (set-sim-running! #t)
+                           (game-loop))]))
 
 (define button-stop
   (new button% [parent control-panel-top]
-               [label "Stop"]))
+               [label "Stop"]
+               [callback (lambda (i e)
+                           (set-sim-running! #f))]))
 
 (define button-next
   (new button% [parent control-panel-top]
@@ -144,6 +151,9 @@
                           (set-cell-ht! (make-hash))
                           (set-cell-buf! (make-hash))
                           (reset-num-generations!)
+                          (set-sim-running! #f)
+                          (send textfield-generations set-value
+                                (number->string num-generations))
                           (send board-canvas refresh))]))
 
 (define slider-speed
@@ -211,10 +221,11 @@
     (collect-garbage 'incremental)))
 
 ; Main loop
-(define (start-loop)
-    (for ([i (in-range 0 +inf.0)])
-      (game-one-iter)
-      (sleep/yield sleep-delay)))
+(define (game-loop)
+    (cond ((equal? sim-running #t)
+           (game-one-iter)
+           (sleep/yield sleep-delay)
+           (game-loop))))
 
 ; Randomly seeds the board
 (define (cell-seed ht)
