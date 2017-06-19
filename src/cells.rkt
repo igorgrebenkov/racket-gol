@@ -103,6 +103,16 @@
              #:when (equal? value ALIVE))
     (values key value)))
 
+; Trims a hash table to remove keys that are less
+; than the current x and y maxes (for window resizing)
+(define (cell-trim ht)
+  (let ((new-hash (make-hash)))
+    (for ([(key value) (in-hash ht)]
+          #:when (and (< (car key) max-x)
+                      (< (cadr key) max-y)))
+      (hash-set! new-hash key value))
+    new-hash))
+
 ; Randomly seeds the hash table
 (define (cell-seed ht)
   (for ([i (in-range 0 max-x)])

@@ -34,17 +34,18 @@
             (else #f))) 
     (define/override (on-paint)                         
       (begin
-        ; disabling this line looks cool
         (send board-canvas set-canvas-background color-background)
         (draw-board cell-ht)
-        (let ((curr-frame-height (send main-frame get-height))
-              (curr-frame-width (send main-frame get-width)))
-        (cond ((not (and (equal? curr-frame-height INIT-FRAME-HEIGHT)  ; handles window resizing
-                         (equal? curr-frame-width INIT-FRAME-WIDTH)))
-               (set-frame-height! curr-frame-height)
-               (set-frame-width! curr-frame-width)
-               (set-max-x! (exact-round (/ frame-width cell-length)))
-               (set-max-y! (exact-round (/ frame-height cell-length))))))))
+         ; handles window resizing
+        (let-values ([(curr-board-width curr-board-height)   
+                      (send board-canvas get-client-size)])
+          (cond ((not (and (< curr-board-height board-height)  
+                           (< curr-board-width board-width)))
+                 (set-cell-ht! (cell-trim cell-ht))
+                 (update-max-xy))
+                ((not (and (> curr-board-height board-height)
+                           (> curr-board-width board-width)))
+                 (update-max-xy))))))
     (super-new)))
 
 ; ********************************* MOUSE-ACTIONS *********************************
@@ -84,14 +85,21 @@
 
 ; ********************************** MAIN FRAME ***********************************
 (define main-frame (new frame% [label "Game of Life"]
-                               [height frame-height]
-                               [width frame-width]))
+                               [height INIT-FRAME-HEIGHT]
+                               [width INIT-FRAME-WIDTH]))
 
 ; ******************************* GAME BOARD CANVAS *******************************
 (define board-canvas (new game-canvas%	 
                           [parent main-frame]	 
                           [style '()]))
 (define dc (send board-canvas get-dc))
+
+(define (update-max-xy)
+  (let-values ([(x y) (send board-canvas get-client-size)])
+    (set-board-height! y)
+    (set-board-width! x)
+    (set-max-x! (exact-round (/ board-width cell-length)))
+    (set-max-y! (exact-round (/ board-height cell-length)))))
 
 ; ******************************* TOP CONTROL PANEL *******************************
 (define control-panel-top (new horizontal-panel%
@@ -173,9 +181,9 @@
                            (send board-canvas refresh)
                            (set-cell-length! (send slider-cell-size get-value))    
                            (set-max-x!
-                            (exact-round (/ frame-width cell-length)))
+                            (exact-round (/ board-width cell-length)))
                            (set-max-y!
-                            (exact-round (/ frame-height cell-length))))]))
+                            (exact-round (/ board-height cell-length))))]))
 
 (define checkbox-border
   (new check-box% [parent control-panel-bottom]
@@ -208,6 +216,7 @@
 (sleep/yield 0)
 (send board-canvas refresh)
 (send board-canvas focus)
+(update-max-xy)
 (send dc set-pen (make-object pen% color-dead 1 cell-border-style))
 (send textfield-generations set-value (number->string num-generations))
 (collect-garbage)

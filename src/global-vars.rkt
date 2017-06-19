@@ -29,13 +29,11 @@
 ; ******************************** STATE VARIABLES ********************************
 ; Dimension related
 (define cell-length INIT-CELL-LENGTH)  
-(define frame-height INIT-FRAME-HEIGHT)      
-(define frame-width INIT-FRAME-WIDTH)
+(define board-height 0)      
+(define board-width 0)
+(define max-x 0)
+(define max-y 0)
 (define sleep-delay INIT-SLEEP-DELAY)
-(define max-x
-  (exact-round (/ frame-width cell-length)))
-(define max-y
-  (exact-round (/ frame-height cell-length)))
 
 ; Hash table buffers
 (define cell-ht (make-hash))     
@@ -69,9 +67,9 @@
 
 (define (set-sim-running! value) (set! sim-running value))
 
-(define (set-frame-height! height) (set! frame-height height))
+(define (set-board-height! height) (set! board-height height))
 
-(define (set-frame-width! width) (set! frame-width width))
+(define (set-board-width! width) (set! board-width width))
 
 (define (set-max-x! x) (set! max-x x))
 
