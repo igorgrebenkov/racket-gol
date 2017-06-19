@@ -19,7 +19,7 @@
 (define color-dead "black")
 (define color-alive "green")
 (define cell-inner-style 'solid)
-(define cell-border-style 'transparent)
+
 (define cell-alive-brush (make-object brush% color-alive cell-inner-style))
 (define cell-dead-brush (make-object brush% color-dead cell-inner-style))
 
@@ -37,6 +37,7 @@
 (define cell-neighbor (make-hash))
 (define num-generations 0)
 (define sim-running #f)
+(define cell-border-style 'transparent)
 (define alive-upper-lim CONWAY-ALIVE-UPPER)
 (define alive-lower-lim CONWAY-ALIVE-LOWER)
 (define dead-thresh CONWAY-DEAD-THRESH)
@@ -54,3 +55,8 @@
 (define (set-frame-width! width) (set! frame-width width))
 (define (set-max-x! x) (set! max-x x))
 (define (set-max-y! y) (set! max-y y))
+(define (toggle-border-style!)
+  (cond ((equal? cell-border-style 'solid)
+         (set! cell-border-style 'transparent))
+        (else
+         (set! cell-border-style 'solid))))

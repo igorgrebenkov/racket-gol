@@ -65,27 +65,7 @@
               (send event get-x)
               (send event get-y)
               'kill))
-            (else #f)))
-    (define/override (on-char event)                     ; Keyboard events
-      (let ((key-char (send event get-key-code)))
-           (cond ((equal? key-char 'f1) (begin (game-loop)))
-                 ((equal? key-char 'f2)
-                  (draw-gosper)
-                  )
-                 ((equal? key-char 'f3)
-                  (send board-canvas refresh)
-                  (set-cell-length! (+ cell-length 0.3))
-                  (set-max-x!
-                    (exact-round (/ frame-width cell-length)))
-                  (set-max-y!
-                    (exact-round (/ frame-height cell-length))))
-                 ((equal? key-char 'f4)
-                  (send board-canvas refresh)
-                  (set-cell-length! (- cell-length 0.3))
-                  (set-max-x!
-                    (exact-round (/ frame-width cell-length)))
-                  (set-max-y!
-                    (exact-round (/ frame-height cell-length))))))) 
+            (else #f))) 
     (define/override (on-paint)                         
       (begin
         ; disabling this line looks cool
@@ -161,8 +141,11 @@
                [label "Speed"]
                [style '(plain horizontal)]
                [min-value 0]
-               [max-value 10000]
-               [init-value 5000]))
+               [max-value 20000]
+               [init-value 5000]
+               [callback (lambda (i e)
+                           (set-sleep-delay!
+                            (/ (send slider-speed get-value) 100000)))]))
 
 (define slider-cell-size
   (new slider% [parent control-panel-bottom]
@@ -183,8 +166,14 @@
   (new text-field% [parent control-panel-top]
                    [label "Generations"]))
 
-(define checkbox-toroidal
-  (new check-box% [parent control-panel-bottom] [label "Toroidal"]))
+(define checkbox-border
+  (new check-box% [parent control-panel-bottom]
+                  [label "Cell Border"]
+                  [callback (lambda (i e)
+                              (toggle-border-style!)
+                              (send dc set-pen
+                                    (make-object pen% color-dead 1 cell-border-style))
+                              (draw-board cell-ht))]))
 
 
 
