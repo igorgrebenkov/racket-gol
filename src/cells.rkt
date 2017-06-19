@@ -103,6 +103,13 @@
              #:when (equal? value ALIVE))
     (values key value)))
 
+; Randomly seeds the hash table
+(define (cell-seed ht)
+  (for ([i (in-range 0 max-x)])
+    (for ([j (in-range 0 max-y)])
+    (cond ((equal? (random 12) 0)
+           (hash-set! ht (list i j) ALIVE))))))
+
 ; Gosper gun hash table
 (define gosper '#hash(((67 34) . 1) ((67 33) . 1) ((62 32) . 1)
                       ((86 32) . 1) ((66 32) . 1) ((72 32) . 1)

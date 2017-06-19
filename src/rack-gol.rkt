@@ -131,6 +131,12 @@
                           (send textfield-generations set-value
                                 (number->string num-generations))
                           (send board-canvas refresh))]))
+(define button-random
+  (new button% [parent control-panel-top]
+               [label "Random"]
+               [callback (lambda (i e)
+                           (cell-seed cell-ht)
+                           (draw-board cell-ht))]))
 
 (define textfield-generations
   (new text-field% [parent control-panel-top]
@@ -149,7 +155,7 @@
   (new slider% [parent control-panel-bottom]
                [label "Speed"]
                [style '(plain horizontal)]
-               [min-value 0]
+               [min-value 1]
                [max-value 20000]
                [init-value 5000]
                [callback (lambda (i e)
@@ -196,14 +202,6 @@
   (for ([(key status) (in-hash ht)])
       (cond ((equal? status ALIVE) (draw-square key cell-alive-brush))
             ((equal? status DEAD) (draw-square key cell-dead-brush)))))
-
-; Randomly seeds the hash table and draws it
-(define (cell-seed ht)
-  (for ([i (in-range 0 max-x)])
-    (for ([j (in-range 0 max-y)])
-    (cond ((equal? (random 12) 0)
-           (hash-set! ht (list i j) ALIVE))))
-  (draw-board ht)))
 
 ; ******************************** INITIALIZATION *********************************
 (send main-frame show #t)
