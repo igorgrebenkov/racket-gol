@@ -70,7 +70,7 @@
       (let ((key-char (send event get-key-code)))
            (cond ((equal? key-char 'f1) (begin (start-loop)))
                  ((equal? key-char 'f2)
-                  ;(draw-gosper)
+                  (draw-gosper)
                   )
                  ((equal? key-char 'f3)
                   (send board-canvas refresh)
@@ -91,8 +91,8 @@
         ; disabling this line looks cool
         (send board-canvas set-canvas-background color-background)
         (draw-board cell-ht)
-        (let ((curr-frame-height (send frame get-height))
-              (curr-frame-width (send frame get-width)))
+        (let ((curr-frame-height (send main-frame get-height))
+              (curr-frame-width (send main-frame get-width)))
         (cond ((not (and (equal? curr-frame-height INIT-FRAME-HEIGHT)  ; handles window resizing
                          (equal? curr-frame-width INIT-FRAME-WIDTH)))
                (set-frame-height! curr-frame-height)
@@ -101,14 +101,50 @@
                (set-max-y! (exact-round (/ frame-height cell-length))))))))
     (super-new)))
 
-(define frame (new frame%
-                   [label "Game of Life"]
-                   [width frame-width]
-                   [height frame-height]))
+
+
+(define main-frame (new frame% [label "Game of Life"]
+                               [height frame-height]
+                               [width frame-width]))
 
 (define board-canvas (new game-canvas%	 
-                          [parent frame]	 
-                          [style '()]))
+                          [parent main-frame]	 
+                          [style '()]
+                          ))
+
+(define control-panel-top (new horizontal-panel%
+                               [parent main-frame]
+                               [alignment '(center center)]
+                               [stretchable-height #f]
+                               [stretchable-width #f]))
+
+(define control-panel-bottom (new horizontal-panel%
+                                  [parent main-frame]
+                                  [alignment '(center center)]
+                                  [stretchable-height #f]
+                                  [stretchable-width #f]))
+
+
+(new button% [parent control-panel-top] [label "Start"])
+(new button% [parent control-panel-top] [label "Stop"])
+(new button% [parent control-panel-top] [label "Next"])
+(new button% [parent control-panel-top] [label "Clear"])
+(new slider% [parent control-panel-bottom]
+             [label "Speed"]
+             [style '(plain horizontal)]
+             [min-value 0]
+             [max-value 10000]
+             [init-value 5000])
+(new slider% [parent control-panel-bottom]
+             [label "Cell Size"]
+             [style '(plain horizontal)]
+             [min-value 0]
+             [max-value 50]
+             [init-value 10])
+(new text-field% [parent control-panel-top] [label "Generations"])
+(new check-box% [parent control-panel-bottom] [label "Toroidal"])
+
+
 
 (define dc (send board-canvas get-dc))
 
@@ -129,7 +165,7 @@
             ((equal? status DEAD) (draw-square key cell-dead-brush)))))
 
 ; Initialization
-(send frame show #t)
+(send main-frame show #t)
 (sleep/yield 0)
 (send board-canvas refresh)
 (send board-canvas focus)
