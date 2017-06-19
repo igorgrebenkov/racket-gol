@@ -130,13 +130,21 @@
                [callback (lambda (i e) (start-loop))]))
 
 (define button-stop
-  (new button% [parent control-panel-top] [label "Stop"]))
+  (new button% [parent control-panel-top]
+               [label "Stop"]))
 
 (define button-next
-  (new button% [parent control-panel-top] [label "Next"]))
+  (new button% [parent control-panel-top]
+               [label "Next"]))
 
 (define button-clear
- (new button% [parent control-panel-top] [label "Clear"]))
+ (new button% [parent control-panel-top]
+              [label "Clear"]
+              [callback (lambda (i e)
+                          (set-cell-ht! (make-hash))
+                          (set-cell-buf! (make-hash))
+                          (reset-num-generations!)
+                          (send board-canvas refresh))]))
 
 (define slider-speed
   (new slider% [parent control-panel-bottom]
