@@ -41,7 +41,7 @@
                       (send board-canvas get-client-size)])
           (cond ((not (and (< curr-board-height board-height)  
                            (< curr-board-width board-width)))
-                 (set-cell-ht! (cell-trim cell-ht))
+                 ;(set-cell-ht! (cell-trim cell-ht))
                  (update-max-xy))
                 ((not (and (> curr-board-height board-height)
                            (> curr-board-width board-width)))
@@ -163,12 +163,12 @@
   (new slider% [parent control-panel-bottom]
                [label "Speed"]
                [style '(plain horizontal)]
-               [min-value 1]
-               [max-value 20000]
-               [init-value 5000]
+               [min-value -20000]
+               [max-value 10]
+               [init-value -5000]
                [callback (lambda (i e)
                            (set-sleep-delay!
-                            (/ (send slider-speed get-value) 100000)))]))
+                            (abs (/ (send slider-speed get-value) 50000))))]))
 
 (define slider-cell-size
   (new slider% [parent control-panel-bottom]
