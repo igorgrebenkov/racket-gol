@@ -125,23 +125,34 @@
                                   [stretchable-width #f]))
 
 
-(new button% [parent control-panel-top] [label "Start"])
+(new button% [parent control-panel-top]
+             [label "Start"]
+             [callback (lambda (i e) (start-loop))])
+
 (new button% [parent control-panel-top] [label "Stop"])
+
 (new button% [parent control-panel-top] [label "Next"])
+
 (new button% [parent control-panel-top] [label "Clear"])
+
 (new slider% [parent control-panel-bottom]
              [label "Speed"]
              [style '(plain horizontal)]
              [min-value 0]
              [max-value 10000]
              [init-value 5000])
+
 (new slider% [parent control-panel-bottom]
              [label "Cell Size"]
              [style '(plain horizontal)]
              [min-value 0]
              [max-value 50]
              [init-value 10])
-(new text-field% [parent control-panel-top] [label "Generations"])
+
+(define generations-textfield
+  (new text-field% [parent control-panel-top]
+                   [label "Generations"]))
+
 (new check-box% [parent control-panel-bottom] [label "Toroidal"])
 
 
@@ -170,6 +181,7 @@
 (send board-canvas refresh)
 (send board-canvas focus)
 (send dc set-pen (make-object pen% color-dead 1 cell-border-style))
+(send generations-textfield set-value (number->string num-generations))
 (collect-garbage)
 
 ; Produces one iteration of the game
@@ -180,6 +192,8 @@
     (draw-board (hash-diff cell-ht cell-buf))
     (set-cell-ht! (hash-copy (cell-remove-dead cell-buf)))
     (set-cell-buf! (make-hash))
+    (increment-num-generations!)
+    (send generations-textfield set-value (number->string num-generations))
     (collect-garbage 'incremental)))
 
 ; Main loop
