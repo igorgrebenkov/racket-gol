@@ -7,41 +7,7 @@
 (require "global-vars.rkt")
 (require "cells.rkt")
 
-; Action associated with mouse buttons for making cells dead/alive
-(define (mouse-click-action x y action)
-  (let ((cell-x (exact-floor (/ x cell-length)))
-        (cell-y (exact-floor (/ y cell-length))))
-    (cond ((equal? action 'toggle-life)
-           (cell-toggle-status cell-ht (list cell-x cell-y)))
-          ((equal? action 'give-life)
-           (cell-update-status cell-ht (list cell-x cell-y) ALIVE))
-          ((equal? action 'kill)
-           (cell-update-status cell-ht (list cell-x cell-y) DEAD)))))
-
-; Sets a cell's status and draws it on the canvas (used for mouse actions)
-(define (cell-update-status ht key status)
-  (begin
-    (hash-set! ht key status)
-    (cond ((equal? status ALIVE)
-           (draw-square key cell-alive-brush))
-          ((equal? status DEAD)
-           (draw-square key cell-dead-brush)))))
-
-; Toggles a cell's status and draws it on the canvas (used for mouse actions)
-(define (cell-toggle-status ht key)
-  (cond ((hash-has-key? ht key)
-         (let ((status (hash-ref ht key)))
-           (cond ((equal? status ALIVE)
-                  (hash-set! ht key DEAD)
-                  (draw-square key cell-dead-brush))
-                 ((equal? status DEAD)
-                  (hash-set! ht key ALIVE)
-                  (draw-square key cell-alive-brush)))))
-        (else
-         (hash-set! ht key ALIVE)
-         (draw-square key cell-alive-brush))))
-
-; Custom canvas used for the gameboard
+; ************************* GAME BOARD CANVAS DEFINITION **************************
 (define game-canvas%
   (class canvas%
     ; Left click         -> toggle cell status
@@ -81,31 +47,58 @@
                (set-max-y! (exact-round (/ frame-height cell-length))))))))
     (super-new)))
 
+; ********************************* MOUSE-ACTIONS *********************************
+(define (mouse-click-action x y action)
+  (let ((cell-x (exact-floor (/ x cell-length)))
+        (cell-y (exact-floor (/ y cell-length))))
+    (cond ((equal? action 'toggle-life)
+           (cell-toggle-status cell-ht (list cell-x cell-y)))
+          ((equal? action 'give-life)
+           (cell-update-status cell-ht (list cell-x cell-y) ALIVE))
+          ((equal? action 'kill)
+           (cell-update-status cell-ht (list cell-x cell-y) DEAD)))))
 
-; The main-frame holds the board-canvas and control panels
+; Sets a cell's status and draws it on the canvas (used for mouse actions)
+(define (cell-update-status ht key status)
+  (begin
+    (hash-set! ht key status)
+    (cond ((equal? status ALIVE)
+           (draw-square key cell-alive-brush))
+          ((equal? status DEAD)
+           (draw-square key cell-dead-brush)))))
+
+; Toggles a cell's status and draws it on the canvas (used for mouse actions)
+(define (cell-toggle-status ht key)
+  (cond ((hash-has-key? ht key)
+         (let ((status (hash-ref ht key)))
+           (cond ((equal? status ALIVE)
+                  (hash-set! ht key DEAD)
+                  (draw-square key cell-dead-brush))
+                 ((equal? status DEAD)
+                  (hash-set! ht key ALIVE)
+                  (draw-square key cell-alive-brush)))))
+        (else
+         (hash-set! ht key ALIVE)
+         (draw-square key cell-alive-brush))))
+
+
+; ********************************** MAIN FRAME ***********************************
 (define main-frame (new frame% [label "Game of Life"]
                                [height frame-height]
                                [width frame-width]))
 
-; Represents the game board
+; ******************************* GAME BOARD CANVAS *******************************
 (define board-canvas (new game-canvas%	 
                           [parent main-frame]	 
                           [style '()]))
 (define dc (send board-canvas get-dc))
 
-; Top control panel
+; ******************************* TOP CONTROL PANEL *******************************
 (define control-panel-top (new horizontal-panel%
                                [parent main-frame]
                                [alignment '(center center)]
                                [stretchable-height #f]
                                [stretchable-width #f]))
-
-; Bottom control panel
-(define control-panel-bottom (new horizontal-panel%
-                                  [parent main-frame]
-                                  [alignment '(center center)]
-                                  [stretchable-height #f]
-                                  [stretchable-width #f]))
 
 ; Control panel GUI elements (top)
 (define button-start
@@ -143,6 +136,14 @@
   (new text-field% [parent control-panel-top]
                    [label "Generations"]))
 
+; ***************************** BOTTOM CONTROL PANEL ******************************
+; Bottom control panel
+(define control-panel-bottom (new horizontal-panel%
+                                  [parent main-frame]
+                                  [alignment '(center center)]
+                                  [stretchable-height #f]
+                                  [stretchable-width #f]))
+
 ; Control panel GUI elements (bottom)
 (define slider-speed
   (new slider% [parent control-panel-bottom]
@@ -179,7 +180,7 @@
                                     (make-object pen% color-dead 1 cell-border-style))
                               (draw-board cell-ht))]))
 
-
+; *********************************** DRAWING *************************************
 ; Draws a single square on the canvas at '(x,y)
 (define (draw-square key brush)
   (let ((x (car key))
@@ -196,7 +197,15 @@
       (cond ((equal? status ALIVE) (draw-square key cell-alive-brush))
             ((equal? status DEAD) (draw-square key cell-dead-brush)))))
 
-; Initialization
+; Randomly seeds the hash table and draws it
+(define (cell-seed ht)
+  (for ([i (in-range 0 max-x)])
+    (for ([j (in-range 0 max-y)])
+    (cond ((equal? (random 12) 0)
+           (hash-set! ht (list i j) ALIVE))))
+  (draw-board ht)))
+
+; ******************************** INITIALIZATION *********************************
 (send main-frame show #t)
 (sleep/yield 0)
 (send board-canvas refresh)
@@ -205,6 +214,7 @@
 (send textfield-generations set-value (number->string num-generations))
 (collect-garbage)
 
+; ********************************** GAME LOOP ************************************
 ; Produces one iteration of the game
 (define (game-one-iter)
   (begin
@@ -223,14 +233,6 @@
            (game-one-iter)
            (sleep/yield sleep-delay)
            (game-loop))))
-
-; Randomly seeds the board
-(define (cell-seed ht)
-  (for ([i (in-range 0 max-x)])
-    (for ([j (in-range 0 max-y)])
-    (cond ((equal? (random 12) 0)
-           (hash-set! ht (list i j) ALIVE))))
-  (draw-board ht)))
 
 ; Draw a gosper gun
 (define (draw-gosper)
