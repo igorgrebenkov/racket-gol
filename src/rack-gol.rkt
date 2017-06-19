@@ -168,9 +168,16 @@
   (new slider% [parent control-panel-bottom]
                [label "Cell Size"]
                [style '(plain horizontal)]
-               [min-value 0]
-               [max-value 50]
-               [init-value 10]))
+               [min-value 1]
+               [max-value 30]
+               [init-value 10]
+               [callback (lambda (i e)
+                           (send board-canvas refresh)
+                           (set-cell-length! (send slider-cell-size get-value))    
+                           (set-max-x!
+                            (exact-round (/ frame-width cell-length)))
+                           (set-max-y!
+                            (exact-round (/ frame-height cell-length))))]))
 
 (define textfield-generations
   (new text-field% [parent control-panel-top]
