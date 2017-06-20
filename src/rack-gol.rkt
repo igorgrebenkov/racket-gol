@@ -43,13 +43,11 @@
                      (< curr-board-width board-width))
                  (displayln curr-board-height)
                  (displayln board-height)
-                 ;(set-cell-ht! (cell-trim cell-ht))
                  (update-max-xy)
-                 )
+                 (set-cell-ht! (cell-trim cell-ht)))
                 ((or (> curr-board-height board-height)
-                           (> curr-board-width board-width))
-                 (update-max-xy)
-                 )))))
+                     (> curr-board-width board-width))
+                 (update-max-xy))))))
     (super-new)))
 
 ; ********************************* MOUSE-ACTIONS *********************************
@@ -184,11 +182,13 @@
                [callback (lambda (i e)
                            (let* ((new-cell-length (send slider-cell-size get-value))
                                   (curr-cell-length cell-length)
-                                  (dx (round (/ (- (/ board-width new-cell-length) (/ board-width curr-cell-length)) 2)))
-                                  (dy (round (/ (- (/ board-height new-cell-length) (/ board-height curr-cell-length)) 2))))
+                                  (dx (round (/ (- (/ board-width new-cell-length)
+                                                   (/ board-width curr-cell-length)) 2)))
+                                  (dy (round (/ (- (/ board-height new-cell-length)
+                                                   (/ board-height curr-cell-length)) 2))))
                              (set-cell-ht! (cell-offset cell-ht dx dy))
                              (set-cell-length! (send slider-cell-size get-value))
-                             ;(update-max-xy)
+                             (update-max-xy)
                              (send board-canvas refresh)))]))            
 
 (define choice-cell-color
