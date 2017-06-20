@@ -8,7 +8,7 @@
 ; Initializes the cell hash tables
 ;
 ; Initially, cell-ht only contains alive cells selected by the user.
-; The hash table ht0 provided to holds the keys of all alive cells
+; The hash table ht0 provided holds the keys of all alive cells
 ; and their neighbors. Hence, if any of those neighbors are dead,
 ; they won't be in cell-ht yet, and so we add them.
 ;
@@ -141,13 +141,16 @@
     (cond ((equal? (random 12) 0)
            (hash-set! ht (list i j) ALIVE))))))
 
-; Change keys by adding offset x and y
+; Change keys by adding offset of x and y
+; Used to reposition cells when zooming in/out on the board
 (define (cell-offset ht x y)
   (let ((new-hash (make-hash)))
     (for ([(key value) (in-hash ht)])
       (let ((new-x (+ (car key) x))
             (new-y (+ (cadr key) y)))
-        (hash-set! new-hash (list new-x new-y) value)))
+        (cond ((and (<= (abs new-x) max-x)
+                    (<= (abs new-y) max-y))
+               (hash-set! new-hash (list new-x new-y) value)))))
     new-hash))
 
 ; Gosper gun hash table

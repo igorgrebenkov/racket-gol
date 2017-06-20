@@ -31,7 +31,7 @@
 (define cell-length INIT-CELL-LENGTH)  
 (define board-height 0)      
 (define board-width 0)
-(define max-x 0)
+(define max-x 0) 
 (define max-y 0)
 (define sleep-delay INIT-SLEEP-DELAY)
 

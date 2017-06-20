@@ -122,12 +122,14 @@
                           [style '()]))
 (define dc (send board-canvas get-dc))
 
+; Updates the max-x and max-y global variables
+; Used to trim the hash table when making the window smaller
 (define (update-max-xy)
   (let-values ([(x y) (send board-canvas get-client-size)])
     (set-board-height! y)
     (set-board-width! x)
-    (set-max-x! (exact-round (/ board-width cell-length)))
-    (set-max-y! (exact-round (/ board-height cell-length)))))
+    (set-max-x! (exact-round (/ board-width 1)))
+    (set-max-y! (exact-round (/ board-height 1)))))
 
 ; ******************************* TOP CONTROL PANEL *******************************
 (define control-panel-top (new horizontal-panel%
