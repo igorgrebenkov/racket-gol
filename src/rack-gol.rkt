@@ -39,13 +39,17 @@
          ; handles window resizing
         (let-values ([(curr-board-width curr-board-height)   
                       (send board-canvas get-client-size)])
-          (cond ((not (and (< curr-board-height board-height)  
-                           (< curr-board-width board-width)))
+          (cond ((or (< curr-board-height board-height)  
+                     (< curr-board-width board-width))
+                 (displayln curr-board-height)
+                 (displayln board-height)
                  ;(set-cell-ht! (cell-trim cell-ht))
-                 (update-max-xy))
-                ((not (and (> curr-board-height board-height)
-                           (> curr-board-width board-width)))
-                 (update-max-xy))))))
+                 (update-max-xy)
+                 )
+                ((or (> curr-board-height board-height)
+                           (> curr-board-width board-width))
+                 (update-max-xy)
+                 )))))
     (super-new)))
 
 ; ********************************* MOUSE-ACTIONS *********************************
@@ -178,12 +182,14 @@
                [max-value 30]
                [init-value 10]
                [callback (lambda (i e)
-                           (send board-canvas refresh)
-                           (set-cell-length! (send slider-cell-size get-value))    
-                           (set-max-x!
-                            (exact-round (/ board-width cell-length)))
-                           (set-max-y!
-                            (exact-round (/ board-height cell-length))))]))
+                           (let* ((new-cell-length (send slider-cell-size get-value))
+                                  (curr-cell-length cell-length)
+                                  (dx (round (/ (- (/ board-width new-cell-length) (/ board-width curr-cell-length)) 2)))
+                                  (dy (round (/ (- (/ board-height new-cell-length) (/ board-height curr-cell-length)) 2))))
+                             (set-cell-ht! (cell-offset cell-ht dx dy))
+                             (set-cell-length! (send slider-cell-size get-value))
+                             ;(update-max-xy)
+                             (send board-canvas refresh)))]))            
 
 (define choice-cell-color
   (new choice% [parent control-panel-bottom]
@@ -191,7 +197,7 @@
                [choices '("Yellow" "Red" "Green" "DodgerBlue" "Orange" "White" "Magenta")]
                [callback (lambda (i e)
                            (set-cell-alive-color!
-                            (send choice-cell-color get-string-selection))
+                           (send choice-cell-color get-string-selection))
                            (draw-board cell-ht))]))
 
 (define checkbox-border

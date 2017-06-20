@@ -23,7 +23,6 @@
 (define color-dead "black")
 (define color-alive "green")
 (define cell-inner-style 'solid)
-(define cell-alive-brush (make-object brush% color-alive cell-inner-style))
 (define cell-dead-brush (make-object brush% color-dead cell-inner-style))
 
 ; ******************************** STATE VARIABLES ********************************
@@ -46,10 +45,12 @@
 
 ; Cell styling
 (define cell-border-style 'transparent)
+(define cell-alive-brush (make-object brush% color-alive cell-inner-style))
+
+; Game rules
 (define alive-upper-lim CONWAY-ALIVE-UPPER)
 (define alive-lower-lim CONWAY-ALIVE-LOWER)
 (define dead-thresh CONWAY-DEAD-THRESH)
-
 
 ; ******************************* MUTATOR FUNCTIONS *******************************
 (define (set-cell-ht! ht) (set! cell-ht ht))

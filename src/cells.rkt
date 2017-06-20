@@ -23,8 +23,8 @@
           (else
            (hash-set! ht1 key DEAD)))))
 
-; Generates a list of the Moore neighborhood of a cell
-(define (cell-neighbors-moore key)
+; Generates a list of the Moore neighborhood of a cell (toroidal)
+(define (cell-neighbors-moore-toroid key)
   (let* ((x (car key))
          (y (cadr key))
          (top-left (list (modulo (- x 1) max-x) (modulo (- y 1) max-y)))
@@ -35,6 +35,27 @@
          (bottom-left (list (modulo (- x 1) max-x) (modulo (+ y 1) max-y)))
          (bottom (list (modulo x max-x) (modulo (+ y 1) max-y)))
          (bottom-right (list (modulo (+ x 1) max-x) (modulo (+ y 1) max-y))))
+    (list top-left
+          top
+          top-right
+          left
+          right
+          bottom-left
+          bottom
+          bottom-right)))
+
+; Generates a list of the Moore neighborhood of a cell (infinite)
+(define (cell-neighbors-moore key)
+  (let* ((x (car key))
+         (y (cadr key))
+         (top-left (list (- x 1) (- y 1)))
+         (top (list x (- y 1)))
+         (top-right (list (+ x 1) (- y 1)))
+         (left (list (- x 1) y))
+         (right (list (+ x 1) y))
+         (bottom-left (list (- x 1) (+ y 1)))
+         (bottom (list x (+ y 1)))
+         (bottom-right (list (+ x 1) (+ y 1))))
     (list top-left
           top
           top-right
@@ -81,7 +102,7 @@
     alive-count))
 
 ; Calculates the next generation of the board
-(define (board-next-gen ht ht-buf)
+(define (board-next-gen ht ht-buf) 
   (for ([(key value) (in-hash ht)])
     (let* ((neighbors (cond ((hash-has-key? cell-neighbor key)
                              (hash-ref cell-neighbor key))
@@ -119,6 +140,15 @@
     (for ([j (in-range 0 max-y)])
     (cond ((equal? (random 12) 0)
            (hash-set! ht (list i j) ALIVE))))))
+
+; Change keys by adding offset x and y
+(define (cell-offset ht x y)
+  (let ((new-hash (make-hash)))
+    (for ([(key value) (in-hash ht)])
+      (let ((new-x (+ (car key) x))
+            (new-y (+ (cadr key) y)))
+        (hash-set! new-hash (list new-x new-y) value)))
+    new-hash))
 
 ; Gosper gun hash table
 (define gosper '#hash(((67 34) . 1) ((67 33) . 1) ((62 32) . 1)
