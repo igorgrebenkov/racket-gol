@@ -185,6 +185,15 @@
                            (set-max-y!
                             (exact-round (/ board-height cell-length))))]))
 
+(define choice-cell-color
+  (new choice% [parent control-panel-bottom]
+               [label "Cell Color "]
+               [choices '("Yellow" "Red" "Green" "DodgerBlue" "Orange" "White" "Magenta")]
+               [callback (lambda (i e)
+                           (set-cell-alive-color!
+                            (send choice-cell-color get-string-selection))
+                           (draw-board cell-ht))]))
+
 (define checkbox-border
   (new check-box% [parent control-panel-bottom]
                   [label "Cell Border"]

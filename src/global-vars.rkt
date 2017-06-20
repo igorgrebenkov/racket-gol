@@ -80,3 +80,6 @@
          (set! cell-border-style 'transparent))
         (else
          (set! cell-border-style 'solid))))
+
+(define (set-cell-alive-color! color-str)
+  (set! cell-alive-brush (make-object brush% color-str cell-inner-style)))
