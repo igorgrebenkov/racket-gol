@@ -41,8 +41,6 @@
                       (send board-canvas get-client-size)])
           (cond ((or (< curr-board-height board-height)  
                      (< curr-board-width board-width))
-                 (displayln curr-board-height)
-                 (displayln board-height)
                  (update-max-xy)
                  (set-cell-ht! (cell-trim cell-ht)))
                 ((or (> curr-board-height board-height)
@@ -148,21 +146,16 @@
                            (cell-seed cell-ht)
                            (draw-board cell-ht))]))
 
-(define textfield-generations
-  (new text-field% [parent control-panel-top]
-                   [label "Generations"]))
-
-; ***************************** BOTTOM CONTROL PANEL ******************************
-; Bottom control panel
-(define control-panel-bottom (new horizontal-panel%
-                                  [parent main-frame]
-                                  [alignment '(center center)]
-                                  [stretchable-height #f]
-                                  [stretchable-width #f]))
+; ****************************** MIDDLE CONTROL PANEL *****************************
+(define control-panel-mid (new horizontal-panel%
+                               [parent main-frame]
+                               [alignment '(center center)]
+                               [stretchable-height #f]
+                               [stretchable-width #f]))
 
 ; Control panel GUI elements (bottom)
 (define slider-speed
-  (new slider% [parent control-panel-bottom]
+  (new slider% [parent control-panel-mid]
                [label "Speed"]
                [style '(plain horizontal)]
                [min-value -20000]
@@ -173,7 +166,7 @@
                             (abs (/ (send slider-speed get-value) 50000))))]))
 
 (define slider-cell-size
-  (new slider% [parent control-panel-bottom]
+  (new slider% [parent control-panel-mid]
                [label "Cell Size"]
                [style '(plain horizontal)]
                [min-value 1]
@@ -189,7 +182,19 @@
                              (set-cell-ht! (cell-offset cell-ht dx dy))
                              (set-cell-length! (send slider-cell-size get-value))
                              (update-max-xy)
-                             (send board-canvas refresh)))]))            
+                             (send board-canvas refresh)))]))
+
+; ***************************** BOTTOM CONTROL PANEL ******************************
+; Bottom control panel
+(define control-panel-bottom (new horizontal-panel%
+                                  [parent main-frame]
+                                  [alignment '(center center)]
+                                  [stretchable-height #f]
+                                  [stretchable-width #f]))
+
+(define textfield-generations
+  (new text-field% [parent control-panel-bottom]
+                   [label "Generations"]))
 
 (define choice-cell-color
   (new choice% [parent control-panel-bottom]
