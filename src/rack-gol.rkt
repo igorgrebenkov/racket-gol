@@ -90,19 +90,19 @@
 
 ; Sets a cell's status and draws it on the canvas (used for mouse actions)
 (define (cell-update-status ht key status)
-  (begin
-    (hash-set! ht key status)
     (cond ((equal? status ALIVE)
+           (hash-set! ht key status)
            (draw-square key cell-alive-brush))
           ((equal? status DEAD)
-           (draw-square key cell-dead-brush)))))
+           (hash-remove! ht key)
+           (draw-square key cell-dead-brush))))
 
 ; Toggles a cell's status and draws it on the canvas (used for mouse actions)
 (define (cell-toggle-status ht key)
   (cond ((hash-has-key? ht key)
          (let ((status (hash-ref ht key)))
            (cond ((equal? status ALIVE)
-                  (hash-set! ht key DEAD)
+                  (hash-remove! ht key)
                   (draw-square key cell-dead-brush))
                  ((equal? status DEAD)
                   (hash-set! ht key ALIVE)
