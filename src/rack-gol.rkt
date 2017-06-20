@@ -31,7 +31,12 @@
               (send event get-x)
               (send event get-y)
               'kill))
-            (else #f))) 
+            (else #f)))
+    (define/override (on-char event)
+      (cond ((equal? 'wheel-up (send event get-key-code))
+             (mouse-board-zoom 'up))
+            ((equal? 'wheel-down (send event get-key-code))
+             (mouse-board-zoom 'down))))
     (define/override (on-paint)                         
       (begin
         (send board-canvas set-canvas-background color-background)
@@ -49,6 +54,25 @@
     (super-new)))
 
 ; ********************************* MOUSE-ACTIONS *********************************
+; Zooms in on the board by increasing/decreasing cell length
+(define (mouse-board-zoom direction)
+  (let* ((new-cell-length
+          (cond ((equal? direction 'up)
+                 (add1 cell-length))
+                (else
+                 (if (> cell-length 1)
+                     (sub1 cell-length)
+                     1))))
+         (curr-cell-length cell-length)
+         (dx (round (/ (- (/ board-width new-cell-length)
+                          (/ board-width curr-cell-length)) 2)))
+         (dy (round (/ (- (/ board-height new-cell-length)
+                          (/ board-height curr-cell-length)) 2))))
+    (set-cell-ht! (cell-offset cell-ht dx dy))
+    (set-cell-length! new-cell-length)
+    (update-max-xy)
+    (send board-canvas refresh)))
+
 (define (mouse-click-action x y action)
   (let ((cell-x (exact-floor (/ x cell-length)))
         (cell-y (exact-floor (/ y cell-length))))
@@ -180,7 +204,7 @@
                                   (dy (round (/ (- (/ board-height new-cell-length)
                                                    (/ board-height curr-cell-length)) 2))))
                              (set-cell-ht! (cell-offset cell-ht dx dy))
-                             (set-cell-length! (send slider-cell-size get-value))
+                             (set-cell-length! new-cell-length)
                              (update-max-xy)
                              (send board-canvas refresh)))]))
 
