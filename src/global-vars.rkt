@@ -23,6 +23,7 @@
 (define color-dead "black")
 (define color-alive "green")
 (define cell-inner-style 'solid)
+(define cell-border-style 'transparent)
 (define cell-dead-brush (make-object brush% color-dead cell-inner-style))
 
 ; ******************************** STATE VARIABLES ********************************
@@ -44,7 +45,6 @@
 (define sim-running #f)
 
 ; Cell styling
-(define cell-border-style 'transparent)
 (define cell-alive-brush (make-object brush% color-alive cell-inner-style))
 
 ; Game rules
@@ -75,12 +75,6 @@
 (define (set-max-x! x) (set! max-x x))
 
 (define (set-max-y! y) (set! max-y y))
-
-(define (toggle-border-style!)
-  (cond ((equal? cell-border-style 'solid)
-         (set! cell-border-style 'transparent))
-        (else
-         (set! cell-border-style 'solid))))
 
 (define (set-cell-alive-color! color-str)
   (set! cell-alive-brush (make-object brush% color-str cell-inner-style)))

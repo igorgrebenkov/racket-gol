@@ -71,8 +71,13 @@
     (set-cell-ht! (cell-offset cell-ht dx dy))
     (set-cell-length! new-cell-length)
     (update-max-xy)
+    (cond ((and (< cell-length 4)
+                (equal? (send (send dc get-pen) get-style) 'solid))
+           (change-cell-border 'transparent)
+           (send checkbox-border set-value #f)))
     (send board-canvas refresh)))
 
+; Updates cell hash table in response to mouse clicks on the board
 (define (mouse-click-action x y action)
   (let ((cell-x (exact-floor (/ x cell-length)))
         (cell-y (exact-floor (/ y cell-length))))
@@ -105,7 +110,6 @@
         (else
          (hash-set! ht key ALIVE)
          (draw-square key cell-alive-brush))))
-
 
 ; ********************************** MAIN FRAME ***********************************
 (define main-frame (new frame% [label "Game of Life"]
@@ -206,6 +210,10 @@
                              (set-cell-ht! (cell-offset cell-ht dx dy))
                              (set-cell-length! new-cell-length)
                              (update-max-xy)
+                             (cond ((and (< cell-length 4)
+                                         (equal? (send (send dc get-pen) get-style) 'solid))
+                                    (change-cell-border 'transparent)
+                                    (send checkbox-border set-value #f)))
                              (send board-canvas refresh)))]))
 
 ; ***************************** BOTTOM CONTROL PANEL ******************************
@@ -233,10 +241,10 @@
   (new check-box% [parent control-panel-bottom]
                   [label "Cell Border"]
                   [callback (lambda (i e)
-                              (toggle-border-style!)
-                              (send dc set-pen
-                                    (make-object pen% color-dead 1 cell-border-style))
-                              (draw-board cell-ht))]))
+                              (cond ((equal? #t (send checkbox-border get-value))
+                                     (change-cell-border 'solid))
+                                    (else
+                                     (change-cell-border 'transparent))))]))
 
 ; *********************************** DRAWING *************************************
 ; Draws a single square on the canvas at '(x,y)
@@ -254,6 +262,11 @@
   (for ([(key status) (in-hash ht)])
       (cond ((equal? status ALIVE) (draw-square key cell-alive-brush))
             ((equal? status DEAD) (draw-square key cell-dead-brush)))))
+
+; Changes the border style of each cell
+(define (change-cell-border style)
+  (send dc set-pen (make-object pen% color-dead 1 style))
+  (draw-board cell-ht))
 
 ; ******************************** INITIALIZATION *********************************
 (send main-frame show #t)
