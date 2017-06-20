@@ -32,7 +32,7 @@
               (send event get-y)
               'kill))
             (else #f)))
-    (define/override (on-char event)
+    (define/override (on-char event)          ; mouse wheel zoom
       (cond ((equal? 'wheel-up (send event get-key-code))
              (mouse-board-zoom 'up))
             ((equal? 'wheel-down (send event get-key-code))
@@ -58,25 +58,30 @@
 (define (mouse-board-zoom direction)
   (let* ((new-cell-length
           (cond ((equal? direction 'up)
-                 (add1 cell-length))
-                (else
-                 (if (> cell-length 1)
-                     (sub1 cell-length)
-                     1))))
-         (curr-cell-length cell-length)
-         (dx (round (/ (- (/ board-width new-cell-length)
-                          (/ board-width curr-cell-length)) 2)))
-         (dy (round (/ (- (/ board-height new-cell-length)
-                          (/ board-height curr-cell-length)) 2))))
-    (set-cell-ht! (cell-offset cell-ht dx dy))
-    (set-cell-length! new-cell-length)
-    (update-max-xy)
-    (cond ((and (< cell-length 4)
-                (equal? (send (send dc get-pen) get-style) 'solid))
-           (change-cell-border 'transparent)
-           (send checkbox-border set-value #f)))
-    (send board-canvas refresh)))
-
+                 (cond ((< cell-length MAX-CELL-LENGTH)
+                        (add1 cell-length))
+                       (else
+                        MAX-CELL-LENGTH)))
+                 ((equal? direction 'down)
+                  (cond ((> cell-length MIN-CELL-LENGTH)
+                         (sub1 cell-length))
+                        (else
+                         MIN-CELL-LENGTH)))))
+          (curr-cell-length cell-length)
+          (dx (round (/ (- (/ board-width new-cell-length)
+                           (/ board-width curr-cell-length)) 2)))
+          (dy (round (/ (- (/ board-height new-cell-length)
+                           (/ board-height curr-cell-length)) 2))))
+         (set-cell-ht! (cell-offset cell-ht dx dy))
+         (set-cell-length! new-cell-length)
+         (send slider-cell-size set-value cell-length)
+         (update-max-xy)
+         (cond ((and (< cell-length 4)
+                     (equal? (send (send dc get-pen) get-style) 'solid))
+                (change-cell-border 'transparent)
+                (send checkbox-border set-value #f)))
+         (send board-canvas refresh)))
+  
 ; Updates cell hash table in response to mouse clicks on the board
 (define (mouse-click-action x y action)
   (let ((cell-x (exact-floor (/ x cell-length)))
@@ -199,9 +204,9 @@
   (new slider% [parent control-panel-mid]
                [label "Cell Size"]
                [style '(plain horizontal)]
-               [min-value 1]
-               [max-value 30]
-               [init-value 10]
+               [min-value MIN-CELL-LENGTH]
+               [max-value MAX-CELL-LENGTH]
+               [init-value INIT-CELL-LENGTH]
                [callback (lambda (i e)
                            (let* ((new-cell-length (send slider-cell-size get-value))
                                   (curr-cell-length cell-length)

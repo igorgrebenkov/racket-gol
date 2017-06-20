@@ -9,6 +9,8 @@
 (define INIT-FRAME-HEIGHT 580)
 (define INIT-FRAME-WIDTH 750)
 (define INIT-CELL-LENGTH 8)
+(define MIN-CELL-LENGTH 1)
+(define MAX-CELL-LENGTH 30)
 (define INIT-SLEEP-DELAY (/ 1 10))
 
 ; General game state
