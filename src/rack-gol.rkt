@@ -26,18 +26,18 @@
             (send event get-y)
             'kill))
           ((send event button-down? 'left)    ; left click
-           (mouse-click-action                ; activates one cell
+           (mouse-click-action                
             (send event get-x)
             (send event get-y)
             'toggle-life))
           ((and (send event get-left-down)    ; left click + drag
-                (send event dragging?))       ; activates multiple cells
+                (send event dragging?))       
            (mouse-click-action  
             (send event get-x)
             (send event get-y)
             'give-life))
           ((and (send event get-right-down)   ; right click + drag
-                (send event dragging?))       ; pans board
+                (send event dragging?))      
            (mouse-board-pan event))
           (else
            (set-mouse-x! (send event get-x))  ; capture current mouse xy for zooming
@@ -95,9 +95,11 @@
 (define (mouse-board-pan event)
   (let* ([x (send event get-x)]
          [y (send event get-y)]
-         [dx (round (/ (- x mouse-x) (+ 10 (* 500 sleep-delay))))]
-         [dy (round (/ (- y mouse-y) (+ 10 (* 500 sleep-delay))))])
+         [dx (- x mouse-x)]
+         [dy (- y mouse-y)])
     (set-cell-ht! (cell-offset cell-ht dx dy))
+    (set-mouse-x! x)
+    (set-mouse-y! y)
     (send board-canvas refresh)))
 
 ; Updates cell hash table in response to mouse clicks on the board
