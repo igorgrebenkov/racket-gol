@@ -2,6 +2,7 @@
 
 ; Contains the game view, I/O and Main loop
 
+(require profile)
 (require racket/gui)
 (require racket/draw)
 (require "global-vars.rkt")
@@ -87,7 +88,6 @@
                               (/ board-height mouse-y)))))
            (set-cell-ht! (cell-offset cell-ht dx dy))
            (set-cell-length! new-cell-length)
-           ;(send slider-cell-size set-value cell-length)
            ;(update-max-xy)
            (send board-canvas refresh)))))
 
@@ -100,7 +100,7 @@
     ;(printf "dx-r: ~a | dy-r: ~a\n" (round dx)(round dy))
     ;(printf "dx-c: ~a | dy-c: ~a\n" (ceiling dx)(ceiling dy))
     ;(printf "dx-f: ~a | dy-f: ~a\n\n" (floor dx)(floor dy))
-    (printf "dx: ~a | dy: ~a\n" dx dy)  
+    ;(printf "dx: ~a | dy: ~a\n" dx dy)  
     (cond ((> dx 0)
            (set! dx (max (exact-round dx) 1)))
           ((< dx 0)
@@ -109,7 +109,7 @@
            (set! dy (max (exact-round dy) 1)))
           ((< dy 0)
            (set! dy (min (exact-round dy) -1))))
-    (printf "dx-p: ~a | dy-p: ~a\n\n" dx dy)            
+    ;(printf "dx-p: ~a | dy-p: ~a\n\n" dx dy)            
     (set-cell-ht! (cell-offset cell-ht dx dy))
     (set-mouse-x! x)
     (set-mouse-y! y)
@@ -227,34 +227,11 @@
                [label "Speed"]
                [style '(plain horizontal)]
                [min-value -20000]
-               [max-value 1]
+               [max-value 0]
                [init-value -5000]
                [callback (lambda (i e)
                            (set-sleep-delay!
                             (abs (/ (send slider-speed get-value) 50000))))]))
-
-(define slider-cell-size
-  (new slider% [parent control-panel-mid]
-               [label "Cell Size"]
-               [style '(plain horizontal)]
-               [min-value MIN-CELL-LENGTH]
-               [max-value MAX-CELL-LENGTH]
-               [init-value INIT-CELL-LENGTH]
-               [callback (lambda (i e)
-                           (let* ((new-cell-length (send slider-cell-size get-value))
-                                  (curr-cell-length cell-length)
-                                  (dx (round (/ (- (/ board-width new-cell-length)
-                                                   (/ board-width curr-cell-length)) 2)))
-                                  (dy (round (/ (- (/ board-height new-cell-length)
-                                                   (/ board-height curr-cell-length)) 2))))
-                             (set-cell-ht! (cell-offset cell-ht dx dy))
-                             (set-cell-length! new-cell-length)
-                             (update-max-xy)
-                             (cond ((and (< cell-length 4)
-                                         (equal? (send (send dc get-pen) get-style) 'solid))
-                                    (change-cell-border 'transparent)
-                                    (send checkbox-border set-value #f)))
-                             (send board-canvas refresh)))]))
 
 ; ***************************** BOTTOM CONTROL PANEL ******************************
 ; Bottom control panel
@@ -291,11 +268,12 @@
 (define (draw-square key brush)
   (let ((x (car key))
         (y (cadr key)))
-    (send dc set-brush brush)
-    (send dc draw-rectangle
-          (* x cell-length)
-          (* y cell-length)
-          cell-length cell-length)))
+    (cond ((and (>= x 0) (>= y 0))
+           (send dc set-brush brush)
+           (send dc draw-rectangle
+                 (* x cell-length)
+                 (* y cell-length)
+                 cell-length cell-length)))))
 
 ; Draws the cells in ht on the board
 (define (draw-board ht)
@@ -344,5 +322,13 @@
     (for ([(key value) (in-hash gosper)])
       (hash-set! cell-ht key value))
     (draw-board cell-ht)))
+
+(define (draw-cross)
+  (for ([y (in-range (round (* max-y 0.58)) (round (* max-y 0.62)))])
+    (hash-set! cell-ht (list (round (/ max-x 2)) y) ALIVE))
+  (for ([x (in-range (round (* max-x 0.47)) (round (* max-x 0.53)))])
+    (hash-set! cell-ht (list x (round (* max-y 0.6))) ALIVE))
+  (draw-board cell-ht)
+  (send board-canvas refresh))
 
 

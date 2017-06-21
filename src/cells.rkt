@@ -148,12 +148,8 @@
     (for ([(key value) (in-hash ht)])
       (let ((new-x (+ (car key) x))
             (new-y (+ (cadr key) y)))
-        (cond ((and (<= (abs new-x) max-x)
-                    (<= (abs new-y) max-y))
-               (hash-set! new-hash (list new-x new-y) value)))))
+               (hash-set! new-hash (list new-x new-y) value)))
     new-hash))
-
-
 
 ; Gosper gun hash table
 (define gosper '#hash(((67 34) . 1) ((67 33) . 1) ((62 32) . 1)
