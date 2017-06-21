@@ -87,8 +87,8 @@
                               (/ board-height mouse-y)))))
            (set-cell-ht! (cell-offset cell-ht dx dy))
            (set-cell-length! new-cell-length)
-           (send slider-cell-size set-value cell-length)
-           (update-max-xy)
+           ;(send slider-cell-size set-value cell-length)
+           ;(update-max-xy)
            (send board-canvas refresh)))))
 
 ; Pans the board using the mouse
@@ -97,7 +97,19 @@
          [y (send event get-y)]
          [dx (/ (- x mouse-x) cell-length)]
          [dy (/ (- y mouse-y) cell-length)])
-    ;(printf "x: ~a | m-x: ~a | dx: ~a\n" x mouse-x dx)
+    ;(printf "dx-r: ~a | dy-r: ~a\n" (round dx)(round dy))
+    ;(printf "dx-c: ~a | dy-c: ~a\n" (ceiling dx)(ceiling dy))
+    ;(printf "dx-f: ~a | dy-f: ~a\n\n" (floor dx)(floor dy))
+    (printf "dx: ~a | dy: ~a\n" dx dy)  
+    (cond ((> dx 0)
+           (set! dx (max (exact-round dx) 1)))
+          ((< dx 0)
+           (set! dx (min (exact-round dx) -1))))
+    (cond ((> dy 0)
+           (set! dy (max (exact-round dy) 1)))
+          ((< dy 0)
+           (set! dy (min (exact-round dy) -1))))
+    (printf "dx-p: ~a | dy-p: ~a\n\n" dx dy)            
     (set-cell-ht! (cell-offset cell-ht dx dy))
     (set-mouse-x! x)
     (set-mouse-y! y)
