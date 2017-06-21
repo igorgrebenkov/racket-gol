@@ -153,6 +153,8 @@
                (hash-set! new-hash (list new-x new-y) value)))))
     new-hash))
 
+
+
 ; Gosper gun hash table
 (define gosper '#hash(((67 34) . 1) ((67 33) . 1) ((62 32) . 1)
                       ((86 32) . 1) ((66 32) . 1) ((72 32) . 1)

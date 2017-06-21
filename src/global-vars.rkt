@@ -35,6 +35,8 @@
 (define board-width 0)
 (define max-x 0) 
 (define max-y 0)
+(define mouse-x 0)
+(define mouse-y 0)
 (define sleep-delay INIT-SLEEP-DELAY)
 
 ; Hash table buffers
@@ -77,6 +79,10 @@
 (define (set-max-x! x) (set! max-x x))
 
 (define (set-max-y! y) (set! max-y y))
+
+(define (set-mouse-x! x) (set! mouse-x x))
+
+(define (set-mouse-y! y) (set! mouse-y y))
 
 (define (set-cell-alive-color! color-str)
   (set! cell-alive-brush (make-object brush% color-str cell-inner-style)))
