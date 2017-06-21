@@ -95,8 +95,9 @@
 (define (mouse-board-pan event)
   (let* ([x (send event get-x)]
          [y (send event get-y)]
-         [dx (- x mouse-x)]
-         [dy (- y mouse-y)])
+         [dx (/ (- x mouse-x) cell-length)]
+         [dy (/ (- y mouse-y) cell-length)])
+    ;(printf "x: ~a | m-x: ~a | dx: ~a\n" x mouse-x dx)
     (set-cell-ht! (cell-offset cell-ht dx dy))
     (set-mouse-x! x)
     (set-mouse-y! y)
