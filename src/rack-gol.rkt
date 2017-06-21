@@ -10,31 +10,38 @@
 ; ************************* GAME BOARD CANVAS DEFINITION **************************
 (define game-canvas%
   (class canvas%
-    ; Left click         -> toggle cell status
-    ; Left click + drag  -> make dead cells alive
-    ; Right click + drag -> make alive cells dead
+    ; Left Click                -> toggle cell status
+    ; Left Click + Drag         -> make dead cells alive
+    ; Right Click + Drag        -> pan the board
+    ; Ctrl + Right Click + Drag -> make alive cells dead
+    ; Mouse Wheel Up            -> zoom-in
+    ; Mouse Wheel Down          -> zoom-out
     (define/override (on-event event)
-      (begin
-        (set-mouse-x! (send event get-x))       ; capture current mouse xy for zooming
-        (set-mouse-y! (send event get-y))
-        (cond ((send event button-down? 'left)  ; left click
-               (mouse-click-action
-                (send event get-x)
-                (send event get-y)
-                'toggle-life))
-              ((and (send event get-left-down)  ; left click + drag
-                    (send event dragging?))
-               (mouse-click-action
-                (send event get-x)
-                (send event get-y)
-                'give-life))
-              ((and (send event get-right-down) ; right click + drag
-                    (send event dragging?))
-               (mouse-click-action
-                (send event get-x)
-                (send event get-y)
-                'kill))
-              (else #f))))
+        (cond
+          ((and (send event get-control-down) ; ctrl + right click + drag
+                (send event get-left-down)    ; deletes cells
+                (send event moving?))
+           (mouse-click-action
+            (send event get-x)
+            (send event get-y)
+            'kill))
+          ((send event button-down? 'left)    ; left click
+           (mouse-click-action                ; activates one cell
+            (send event get-x)
+            (send event get-y)
+            'toggle-life))
+          ((and (send event get-left-down)    ; left click + drag
+                (send event dragging?))       ; activates multiple cells
+           (mouse-click-action  
+            (send event get-x)
+            (send event get-y)
+            'give-life))
+          ((and (send event get-right-down)   ; right click + drag
+                (send event dragging?))       ; pans board
+           (mouse-board-pan event))
+          (else
+           (set-mouse-x! (send event get-x))  ; capture current mouse xy for zooming
+           (set-mouse-y! (send event get-y)))))
     (define/override (on-char event)          ; mouse wheel zoom
       (cond ((equal? 'wheel-up (send event get-key-code))
              (mouse-board-zoom 'up event))
@@ -84,6 +91,14 @@
            (update-max-xy)
            (send board-canvas refresh)))))
 
+; Pans the board using the mouse
+(define (mouse-board-pan event)
+  (let* ([x (send event get-x)]
+         [y (send event get-y)]
+         [dx (round (/ (- x mouse-x) (+ 10 (* 500 sleep-delay))))]
+         [dy (round (/ (- y mouse-y) (+ 10 (* 500 sleep-delay))))])
+    (set-cell-ht! (cell-offset cell-ht dx dy))
+    (send board-canvas refresh)))
 
 ; Updates cell hash table in response to mouse clicks on the board
 (define (mouse-click-action x y action)
