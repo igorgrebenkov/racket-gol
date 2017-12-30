@@ -207,12 +207,32 @@
                           (send textfield-generations set-value
                                 (number->string num-generations))
                           (send board-canvas refresh))]))
-(define button-random
+
+(define button-about
   (new button% [parent control-panel-top]
-               [label "Random"]
-               [callback (lambda (i e)
-                           (cell-seed cell-ht)
-                           (draw-board cell-ht))]))
+               [label "About"]
+               [callback (lambda (i e) (send about-dialog show #t))]))
+
+(define about-dialog
+  (new dialog% [label "About"]))
+
+(define about-title-font
+  (make-object font% 14 'modern 'normal 'bold))
+
+(define about-info-font
+  (make-object font% 13 'modern 'normal))
+
+(define about-msg-title
+  (new message% [parent about-dialog]
+                [font about-title-font]
+                [label "rack-gol\n"]
+                [auto-resize #t]))
+
+(define about-msg-info
+  (new message% [parent about-dialog]
+                [font about-info-font]
+                [label "by Igor Grebenkov\nhttps://github.com/igorgrebenkov/racket-gol"]
+                [auto-resize #t]))
 
 ; ****************************** MIDDLE CONTROL PANEL *****************************
 (define control-panel-mid (new horizontal-panel%
@@ -227,7 +247,7 @@
                [label "Speed"]
                [style '(plain horizontal)]
                [min-value -20000]
-               [max-value 0]
+               [max-value -50]
                [init-value -5000]
                [callback (lambda (i e)
                            (set-sleep-delay!

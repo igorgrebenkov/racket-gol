@@ -134,13 +134,6 @@
       (hash-set! new-hash key value))
     new-hash))
 
-; Randomly seeds the hash table
-(define (cell-seed ht)
-  (for ([i (in-range 0 max-x)])
-    (for ([j (in-range 0 max-y)])
-    (cond ((equal? (random 12) 0)
-           (hash-set! ht (list i j) ALIVE))))))
-
 ; Change keys by adding offset of x and y
 ; Used to reposition cells when zooming in/out on the board
 (define (cell-offset ht x y)
