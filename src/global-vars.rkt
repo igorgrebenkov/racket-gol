@@ -12,6 +12,7 @@
 (define MIN-CELL-LENGTH 1)
 (define MAX-CELL-LENGTH 30)
 (define INIT-SLEEP-DELAY (/ 1 10))
+(define VERSION "v1.0")
 
 ; General game state
 (define ALIVE 1)

@@ -88,7 +88,6 @@
                               (/ board-height mouse-y)))))
            (set-cell-ht! (cell-offset cell-ht dx dy))
            (set-cell-length! new-cell-length)
-           ;(update-max-xy)
            (send board-canvas refresh)))))
 
 ; Pans the board using the mouse
@@ -97,10 +96,6 @@
          [y (send event get-y)]
          [dx (/ (- x mouse-x) cell-length)]
          [dy (/ (- y mouse-y) cell-length)])
-    ;(printf "dx-r: ~a | dy-r: ~a\n" (round dx)(round dy))
-    ;(printf "dx-c: ~a | dy-c: ~a\n" (ceiling dx)(ceiling dy))
-    ;(printf "dx-f: ~a | dy-f: ~a\n\n" (floor dx)(floor dy))
-    ;(printf "dx: ~a | dy: ~a\n" dx dy)  
     (cond ((> dx 0)
            (set! dx (max (exact-round dx) 1)))
           ((< dx 0)
@@ -150,7 +145,7 @@
          (draw-square key cell-alive-brush))))
 
 ; ********************************** MAIN FRAME ***********************************
-(define main-frame (new frame% [label "Game of Life"]
+(define main-frame (new frame% [label "rack-gol"]
                                [height INIT-FRAME-HEIGHT]
                                [width INIT-FRAME-WIDTH]))
 
@@ -225,7 +220,7 @@
 (define about-msg-title
   (new message% [parent about-dialog]
                 [font about-title-font]
-                [label "rack-gol\n"]
+                [label (string-append "rack-gol " VERSION "\n")]
                 [auto-resize #t]))
 
 (define about-msg-info
