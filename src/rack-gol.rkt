@@ -145,7 +145,7 @@
          (draw-square key cell-alive-brush))))
 
 ; ********************************** MAIN FRAME ***********************************
-(define main-frame (new frame% [label "rack-gol"]
+(define main-frame (new frame% [label "racket-gol"]
                                [height INIT-FRAME-HEIGHT]
                                [width INIT-FRAME-WIDTH]))
 
@@ -220,7 +220,7 @@
 (define about-msg-title
   (new message% [parent about-dialog]
                 [font about-title-font]
-                [label (string-append "rack-gol " VERSION "\n")]
+                [label (string-append "racket-gol " VERSION "\n")]
                 [auto-resize #t]))
 
 (define about-msg-info
